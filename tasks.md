@@ -37,7 +37,7 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 - [ ] POST-Endpoint `/upload/corrections` für `(audio_chunk, korrigierter_text)` implementieren
 - [ ] Speicherstruktur anlegen: `/corrections` das Dateipaare enthält wie `2025-06-18 15:46.txt` und `2025-06-18 15:46.wav` für Audio und korrigiertem Text
 - [ ] Trainings-Trigger realisieren via HTTP-Endpoint `/train`
-- [ ] LoRA-Feintuning-Pipeline mit EWC-Integration implementieren (r=16, α=32, dropout=0.1, konfigurierbares λ)
+- [ ] LoRA-Feintuning-Pipeline mit EWC-Integration implementieren (r=16, α=32, dropout=0.1, konfigurierbares λ mit mir testen und fest setzen, )
 - [ ] Versionierung der Modell-Checkpoints unter `/models/`
 - [ ] GET-Endpoint `/model/download` bereitstellen
 - [ ] Logging für Performance-Messungen (Latenz, Trainingszeit)
@@ -63,16 +63,16 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 
 ### Server
 
-- [ ] Mechanismus zur Prompt-Injection für Vokabular-Biasing umsetzen:
-    - [ ] Option A: statisches `vocab_bias.json`
-    - [ ] Option B: dynamisch aus Nutzer-Feedback
+- [ ] Mechanismus zur Prompt-Injection für Vokabular-Biasing umsetzen durch statisches `vocab_bias.json` die vom Client aus geändert werden kann
 - [ ] Decoder anpassen, um Bias-Wahrscheinlichkeiten bei der CTC-Dekodierung zu priorisieren
 - [ ] Optional: Rescoring-Endpoint `/rescore` zur LLM-gestützten Priorisierung (z. B. GPT-API)
 
 
 ### Client
 
-- [ ] Settings-Tab: Eingabefeld zum Hinzufügen eigener Fachbegriffe
+- [ ] Settings-Tab
+    - [ ] Eingabefeld zum Hinzufügen eigener Fachbegriffe zu `vocab_bias.json`
+    - [ ] Button um Neustart des Servers der die neuen Begriffe einbetten muss, loading spinner bis Server fertig ist
 - [ ] Anzeige der aktiven Bias-Begriffe und Möglichkeit zum Entfernen
 - [ ] Option zum temporären Deaktivieren des Biasing
 
