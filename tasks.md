@@ -32,18 +32,29 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 
 *Um kontinuierliches Lernen zu ermöglichen, setze Server-Endpunkte für Corrections und Training und Client-UI für Korrekturen um.*
 
+Erweiterte Dokumentation zu diesem Task ist in `docs/ecw.md`
+
 ### Server
 
 - [ ] POST-Endpoint `/upload/corrections` für `(audio_chunk, korrigierter_text)` implementieren
 - [ ] Speicherstruktur anlegen: `/corrections` das Dateipaare enthält wie `2025-06-18 15:46.txt` und `2025-06-18 15:46.wav` für Audio und korrigiertem Text
-- [ ] Trainings-Trigger realisieren via HTTP-Endpoint `/train`
-- [ ] LoRA-Feintuning-Pipeline mit EWC-Integration implementieren (r=16, α=32, dropout=0.1, konfigurierbares λ mit mir testen und fest setzen, )
-- [ ] Versionierung der Modell-Checkpoints unter `/models/`
-- [ ] GET-Endpoint `/model/download` bereitstellen
+- [ ] Trainings-Trigger realisieren via HTTP-Endpoint `/train/ewc`
+- [ ] **Fisher-Information berechnen**  
+  - Funktion `get_fisher_diag(model, dataloader)`  
+- [ ] **EWCTrainer-Klasse erweitern**  
+  - Überschreiben von `compute_loss` mit EWC-Term  
+- [ ] **Feintuning-Task**  
+  - Skript `run_ewc_training()` für:  
+    - Laden des Basismodells  
+    - Erzeugen der Datasets A und B  
+    - Berechnung von Fisher & alten Parametern  
+    - Training mit konfigurierbarem `ewc_lambda`  
+    - Speichern und Versionieren des Modells unter `/models/`, logging welche Datensätze in das neue Modell geflossen sind
+    - neues Modell laden, hot swapping nicht nötig, downtime ist kein Problem
 - [ ] Logging für Performance-Messungen (Latenz, Trainingszeit)
 - [ ] mit streamlit unter `/monitoring` ein Monitoring etablieren
     - [ ] welche Traningsdaten noch nicht verarbeitet wurden
-    - [ ] welches das neuste Modell ist das von `/model/download` herunter geladen werden kann und wann er erstellt worden ist
+    - [ ] Übersicht über die letzten 5 Modelle und wie viele Traningsdaten in das Modell geflossen sind bei dessen Training
     - [ ] letzten 200 Zeilen aus Performance Logging
 
 
