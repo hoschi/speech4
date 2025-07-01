@@ -17,3 +17,8 @@ alwaysApply: true
 ### ✅ Aufgabenerledigung
 - **Markieren Sie abgeschlossene Aufgaben in `tasks.md`** sofort nach ihrer Erledigung.
 - Fügen Sie neue Unteraufgaben oder TODOs, die während der Entwicklung entdeckt wurden, in `tasks.md` unter einem Abschnitt "Discovered During Work" dem aktuellen Feature hinzu.
+
+### Auskommentieren von Code
+
+Lieber Code löschen als auskommentieren, das ist nur zu testzwecken erlaubt
+
