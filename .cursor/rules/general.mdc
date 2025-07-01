@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### 🔄 Projektkenntnis und -kontext
+- **Lesen Sie zu Beginn eines neuen Gesprächs immer `plan.md`**, um die Architektur, die Ziele, den Stil und die Beschränkungen des Projekts zu verstehen.
+- **Prüfen Sie `tasks.md`**, bevor Sie eine neue Aufgabe beginnen. Wenn die Aufgabe nicht aufgeführt ist, fügen Sie sie mit einer kurzen Beschreibung und dem heutigen Datum hinzu.
+- **Verwenden Sie konsistente Benennungskonventionen, Dateistrukturen und Architekturmuster**, wie in `plan.md` beschrieben.
+- werden Entscheidungen getroffen müssen diese in `plan.md` oder `tasks.md` festgehalten werden damit der Code immer zu unserem Plan passt
+
+### 🧱 Code-Struktur & Modularität
+- **Erstelle niemals eine Datei, die länger als 500 Zeilen Code ist.** Wenn sich eine Datei dieser Grenze nähert, refaktorisiere sie, indem du sie in Module oder Hilfsdateien aufteilst.
+- **Organisieren Sie den Code in klar getrennte Module**, gruppiert nach Funktion oder Verantwortung.
+- **Verwenden Sie klare, konsistente Importe** (bevorzugen Sie relative Importe innerhalb von Paketen).
+
+### ✅ Aufgabenerledigung
+- **Markieren Sie abgeschlossene Aufgaben in `tasks.md`** sofort nach ihrer Erledigung.
+- Fügen Sie neue Unteraufgaben oder TODOs, die während der Entwicklung entdeckt wurden, in `tasks.md` unter einem Abschnitt "Discovered During Work" dem aktuellen Feature hinzu.

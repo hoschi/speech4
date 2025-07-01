@@ -4,7 +4,7 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 
 Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das folgende Features enthält die dir helfen könnten bei der Implementierung:
 
-* **Streaming-ASR** via Vosk API: niedrige Latenz (kleiner 100 ms), CTC/WFST, CPU-optimiert.
+* **Streaming-ASR** via Vosk API: niedrige Latenz (kleiner 100 ms), CTC/WFST, CPU-optimiert.
 * **Code-Switching**: Deutsche Modelle mit englischen Termini.
 * **Adapter-Feintuning**: Nutzt Kaldi-Adapter, lässt sich in Personalisierungs-Pipeline einbinden.
 
@@ -14,8 +14,8 @@ Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das fo
 
 ### Server
 
-- [ ] Python-Projekt initialisieren mit venv und FastAPI
-- [ ] Abhängigkeiten installieren (PyTorch, Transformers, PEFT, uvicorn, websockets)
+- [x] Python-Projekt initialisieren mit venv und FastAPI
+- [x] Abhängigkeiten installieren (PyTorch, Transformers, PEFT, uvicorn, websockets)
 - [ ] WebSocket-Endpunkt `/ws/stream` einrichten
 - [ ] Eingehende 20 ms PCM-Chunks empfangen und in Tensoren umwandeln
 - [ ] Modell `facebook/wav2vec2-large-xlsr-53-german` auf CPU/Neural Engine laden

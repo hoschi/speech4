@@ -1,1 +1,3 @@
 other-repos
+__pycache__/
+.env
