@@ -2,6 +2,12 @@
 
 Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden sich unter Überschriften je eine Liste mit Aufgaben für **Server** und **Client**.
 
+Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das folgende Features enthält die dir helfen könnten bei der Implementierung:
+
+* **Streaming-ASR** via Vosk API: niedrige Latenz (kleiner 100 ms), CTC/WFST, CPU-optimiert.
+* **Code-Switching**: Deutsche Modelle mit englischen Termini.
+* **Adapter-Feintuning**: Nutzt Kaldi-Adapter, lässt sich in Personalisierungs-Pipeline einbinden.
+
 ## Feature: Basis-Streaming-Inferenz
 
 *Um eine funktionierende Echtzeit-Transkription zu ermöglichen, implementiere im Server die Streaming-Pipeline und im Client die Audio-Erfassung und Anzeige.*
@@ -18,6 +24,8 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 
 
 ### Client
+
+Unter `./other-repos/leon` findest du ein Beispielprojekt das dir helfen kann bei der Audio verarbeitung und anzeige des transkripts. Wichtig ist aber das ich das in einem eingabe feld haben möchte damit ich es später editieren kann
 
 - [ ] React-Projekt initialisieren mit Vite und TypeScript
 - [ ] Mikrofonzugriff via Web-Audio API anfordern
@@ -71,6 +79,8 @@ Erweiterte Dokumentation zu diesem Task ist in `docs/ecw.md`
 ## Feature: Code-Switching \& Vokabular-Biasing
 
 *Um Fachbegriffe korrekt zu behandeln, implementiere Biasing im Server-Decoder und entsprechende Einstellungen im Client.*
+
+Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier helfen kann
 
 ### Server
 
