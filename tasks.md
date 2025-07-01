@@ -16,9 +16,9 @@ Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das fo
 
 - [x] Python-Projekt initialisieren mit venv und FastAPI
 - [x] Abhängigkeiten installieren (PyTorch, Transformers, PEFT, uvicorn, websockets)
-- [ ] WebSocket-Endpunkt `/ws/stream` einrichten
-- [ ] Eingehende 20 ms PCM-Chunks empfangen und in Tensoren umwandeln
-- [ ] Modell `facebook/wav2vec2-large-xlsr-53-german` auf CPU/Neural Engine laden
+- [x] WebSocket-Endpunkt `/ws/stream` einrichten
+- [x] Eingehende 20 ms PCM-Chunks empfangen und in Tensoren umwandeln
+- [x] Modell `facebook/wav2vec2-large-xlsr-53-german` auf CPU/Neural Engine laden
 - [ ] Inferenz-Pipeline (Forward-Pass → Logits → CTC-Decoding) implementieren
 - [ ] Transkripte als Chunks über WebSocket zurücksenden
 
@@ -27,11 +27,11 @@ Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das fo
 
 Unter `./other-repos/leon` findest du ein Beispielprojekt das dir helfen kann bei der Audio verarbeitung und anzeige des transkripts. Wichtig ist aber das ich das in einem eingabe feld haben möchte damit ich es später editieren kann
 
-- [ ] React-Projekt initialisieren mit Vite und TypeScript
-- [ ] Mikrofonzugriff via Web-Audio API anfordern
-- [ ] 20 ms Audio-Chunks erfassen und als PCM-Buffer serialisieren
-- [ ] WebSocket-Verbindung zu `/ws/stream` aufbauen
-- [ ] Gesammelte Audio-Chunks in Echtzeit senden
+- [x] React-Projekt initialisieren mit Vite und TypeScript
+- [x] Mikrofonzugriff via Web-Audio API anfordern
+- [x] 20 ms Audio-Chunks erfassen und als PCM-Buffer serialisieren
+- [x] WebSocket-Verbindung zu `/ws/stream` aufbauen
+- [x] Gesammelte Audio-Chunks in Echtzeit senden
 - [ ] Eingehende Transkriptions-Chunks anzeigen (Streaming-Update)
 - [ ] Fehler-Handling bei Verbindungsabbrüchen implementieren
 
