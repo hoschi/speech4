@@ -19,6 +19,7 @@ OVERLAP = 2560      # 50% Overlap
 async def websocket_stream(websocket: WebSocket):
     await websocket.accept()
     buffer = np.zeros(0, dtype=np.int16)
+    last_sent = ""
     try:
         while True:
             data = await websocket.receive_bytes()
@@ -31,11 +32,19 @@ async def websocket_stream(websocket: WebSocket):
                     logits = model(input_values).logits
                 predicted_ids = torch.argmax(logits, dim=-1)
                 transcription = processor.batch_decode(predicted_ids)[0]  # type: ignore
-                await websocket.send_text(transcription)
-                # Sliding Window: entferne nur OVERLAP Samples, nicht das ganze Fenster
+                # Sende nur das Delta (neuer Text seit letztem Chunk)
+                if transcription.startswith(last_sent):
+                    delta = transcription[len(last_sent):]
+                else:
+                    delta = transcription
+                await websocket.send_text(delta)
+                last_sent = transcription
                 buffer = buffer[OVERLAP:]
     except WebSocketDisconnect:
-        pass
+        print("WebSocket disconnected")
+    except Exception as e:
+        print(f"Error: {e}")
+        await websocket.close()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

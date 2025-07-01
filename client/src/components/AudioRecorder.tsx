@@ -7,12 +7,14 @@ type AudioRecorderProps = {
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
   const wsRef = useRef<WebSocket | null>(null);
   const [recording, setRecording] = useState(false);
+  const [wsStatus, setWsStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
   const startRecording = async () => {
     if (recording) return;
+    setWsStatus('connecting');
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaStreamRef.current = stream;
     audioContextRef.current = new window.AudioContext({ sampleRate: 16000 });
@@ -32,6 +34,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
     processorRef.current = processor;
     // WebSocket verbinden
     wsRef.current = new WebSocket('ws://localhost:8000/ws/stream');
+    wsRef.current.onopen = () => setWsStatus('connected');
+    wsRef.current.onclose = () => {
+      setWsStatus('disconnected');
+      stopRecording();
+    };
+    wsRef.current.onerror = () => {
+      setWsStatus('error');
+      stopRecording();
+    };
     wsRef.current.onmessage = (event) => {
       onTranscriptChunk(event.data);
     };
@@ -41,16 +52,24 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
   const stopRecording = () => {
     setRecording(false);
     processorRef.current?.disconnect();
-    audioContextRef.current?.close();
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+    }
     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     wsRef.current?.close();
   };
 
   return (
-    <div>
-      <button onClick={recording ? stopRecording : startRecording}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', margin: '1.5rem 0' }}>
+      <button
+        onClick={recording ? stopRecording : startRecording}
+        className={`button-main${recording ? ' stop' : ''}`}
+      >
         {recording ? 'Stop Recording' : 'Start Recording'}
       </button>
+      {wsStatus === 'error' && (
+        <span className="status-error">Verbindungsfehler zum Server</span>
+      )}
     </div>
   );
 };

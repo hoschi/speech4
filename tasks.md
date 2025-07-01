@@ -32,8 +32,8 @@ Unter `./other-repos/leon` findest du ein Beispielprojekt das dir helfen kann be
 - [x] 20 ms Audio-Chunks erfassen und als PCM-Buffer serialisieren
 - [x] WebSocket-Verbindung zu `/ws/stream` aufbauen
 - [x] Gesammelte Audio-Chunks in Echtzeit senden
-- [ ] Eingehende Transkriptions-Chunks anzeigen (Streaming-Update)
-- [ ] Fehler-Handling bei Verbindungsabbrüchen implementieren
+- [x] Eingehende Transkriptions-Chunks anzeigen (Streaming-Update)
+- [x] Fehler-Handling bei Verbindungsabbrüchen implementieren
 
 
 ## Feature: Personalisierungs-Loop
@@ -113,4 +113,9 @@ Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier
 
 - Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
 - Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.
+
+
+## Feature: Improvements
+
+- [ ] Audioaufnahme im Client von ScriptProcessorNode auf AudioWorkletNode umstellen (Web Audio API Best Practice)
 
