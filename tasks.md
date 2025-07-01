@@ -1,6 +1,6 @@
 # Tasks
 
-Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden sich unter Überschriften je eine Liste mit Aufgaben für **Server** und **Client**. Die Coding-KI markiert jede Checkbox als erledigt, sobald Tests und Implementierungen erfolgreich abgeschlossen sind.
+Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden sich unter Überschriften je eine Liste mit Aufgaben für **Server** und **Client**.
 
 ## Feature: Basis-Streaming-Inferenz
 
@@ -35,27 +35,26 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 ### Server
 
 - [ ] POST-Endpoint `/upload/corrections` für `(audio_chunk, korrigierter_text)` implementieren
-- [ ] Speicherstruktur anlegen:
-    - `/data/audio/`
-    - `/data/text/`
-- [ ] Trainings-Trigger realisieren (wähle eine Option oder ermögliche beides):
-    - [ ] manuell via HTTP-Endpoint `/train`
-    - [ ] zeitbasiert (Cron-Job)
+- [ ] Speicherstruktur anlegen: `/corrections` das Dateipaare enthält wie `2025-06-18 15:46.txt` und `2025-06-18 15:46.wav` für Audio und korrigiertem Text
+- [ ] Trainings-Trigger realisieren via HTTP-Endpoint `/train`
 - [ ] LoRA-Feintuning-Pipeline mit EWC-Integration implementieren (r=16, α=32, dropout=0.1, konfigurierbares λ)
 - [ ] Versionierung der Modell-Checkpoints unter `/models/`
 - [ ] GET-Endpoint `/model/download` bereitstellen
-- [ ] Integrationstests: Upload → Training → Download → Inferenz
 - [ ] Logging für Performance-Messungen (Latenz, Trainingszeit)
+- [ ] mit streamlit unter `/monitoring` ein Monitoring etablieren
+    - [ ] welche Traningsdaten noch nicht verarbeitet wurden
+    - [ ] welches das neuste Modell ist das von `/model/download` herunter geladen werden kann und wann er erstellt worden ist
+    - [ ] letzten 200 Zeilen aus Performance Logging
 
 
 ### Client
 
 - [ ] UI-Komponente zur Bearbeitung transkribierter Zeilen hinzufügen
-- [ ] „Speichern“-Button neben jeder Zeile für korrigierten Text
-- [ ] Batch-Upload aller Korrekturen (z. B. in Gruppen zu 50 Einträgen)
-- [ ] Fortschrittsanzeige für Upload und Training (Polling oder WebSocket)
+    - [ ] für jede Aufnahme wird der transkribierte Text in einem einfachen input feld dargestellt das bearbeitet werden kann, sobald die Aufnahme vom Benutzer beendet wird
+    - [ ] einen "upload" Button um die daten an `/corrections` zu übertragen
+    - [ ] nach einem upload kann dieser nicht nochmal getriggert werden, außer es ist ein Fehler aufgetreten beim upload. Auch der Text kann nicht mehr editiert werden
+    - [ ] loading spinner für Upload bis er fertig ist mit Fehlerbehandlung
 - [ ] Automatisches Neuladen des neuen Modells nach Training
-- [ ] Integrationstest: Korrektur → Upload → neue Inferenz verwenden
 
 
 ## Feature: Code-Switching \& Vokabular-Biasing
@@ -69,7 +68,6 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
     - [ ] Option B: dynamisch aus Nutzer-Feedback
 - [ ] Decoder anpassen, um Bias-Wahrscheinlichkeiten bei der CTC-Dekodierung zu priorisieren
 - [ ] Optional: Rescoring-Endpoint `/rescore` zur LLM-gestützten Priorisierung (z. B. GPT-API)
-- [ ] Tests: korrekte Priorisierung englischer Fachbegriffe und WER-Vergleich
 
 
 ### Client
@@ -77,7 +75,6 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 - [ ] Settings-Tab: Eingabefeld zum Hinzufügen eigener Fachbegriffe
 - [ ] Anzeige der aktiven Bias-Begriffe und Möglichkeit zum Entfernen
 - [ ] Option zum temporären Deaktivieren des Biasing
-- [ ] Tests: Code-Switching-Szenarien simulieren und Verifizierung der Anzeige
 
 
 ## Feature: Erweiterungen \& Optimierungen
@@ -86,22 +83,13 @@ Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden
 
 ### Server
 
-- [ ] Synthetic Data Augmentation via VALL-E X integrieren (API \& Lizenz prüfen)
+- [ ] Synthetic Data Augmentation via VALL-E X integrieren (API und Lizenz prüfen)
 - [ ] Alternative Streaming-Server evaluieren (VOSK, ESPnet-Conformer, Kaldi-Serve)
 - [ ] CI/CD-Pipeline für Builds, Tests und Deployments einrichten (Docker, GitHub Actions)
-- [ ] Monitoring-Dashboard aufsetzen (Prometheus + Grafana) für Latenz und Fehlerraten
 
-
-### Client
-
-- [ ] Responsive UI und Dark Mode umsetzen
-- [ ] End-to-End-Performance-Test-Suite automatisieren
-- [ ] Barrierefreiheit sicherstellen (ARIA-Labels, Screenreader-Kompatibilität)
-- [ ] Usability-Tests durchführen und Feedback umsetzen
 
 **Regeln für die Coding-KI:**
 
 - Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
 - Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.
-- Keine freien Textantworten: Folge strikt den Checklisten.
 
