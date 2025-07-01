@@ -19,8 +19,8 @@ Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das fo
 - [x] WebSocket-Endpunkt `/ws/stream` einrichten
 - [x] Eingehende 20 ms PCM-Chunks empfangen und in Tensoren umwandeln
 - [x] Modell `facebook/wav2vec2-large-xlsr-53-german` auf CPU/Neural Engine laden
-- [ ] Inferenz-Pipeline (Forward-Pass → Logits → CTC-Decoding) implementieren
-- [ ] Transkripte als Chunks über WebSocket zurücksenden
+- [x] Inferenz-Pipeline (Forward-Pass → Logits → CTC-Decoding) implementieren
+- [x] Transkripte als Chunks über WebSocket zurücksenden
 
 
 ### Client

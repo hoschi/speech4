@@ -11,6 +11,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const BUFFER_SIZE = 16000; // 1 Sekunde @ 16kHz
+  const sampleBufferRef = useRef<Int16Array>(new Int16Array(0));
 
   const startRecording = async () => {
     if (recording) return;
@@ -19,7 +21,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
     mediaStreamRef.current = stream;
     audioContextRef.current = new window.AudioContext({ sampleRate: 16000 });
     const source = audioContextRef.current.createMediaStreamSource(stream);
-    const processor = audioContextRef.current.createScriptProcessor(256, 1, 1); // 16ms @ 16kHz = 256 samples
+    const processor = audioContextRef.current.createScriptProcessor(1024, 1, 1); // 64ms @ 16kHz = 1024 samples
     processor.onaudioprocess = (e) => {
       const input = e.inputBuffer.getChannelData(0);
       // PCM 16bit Little Endian
@@ -27,7 +29,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
       for (let i = 0; i < input.length; i++) {
         pcm[i] = Math.max(-1, Math.min(1, input[i])) * 32767;
       }
-      wsRef.current?.send(pcm.buffer);
+      // Buffering: sammle PCM bis mindestens 5120 Samples erreicht sind
+      const prev = sampleBufferRef.current;
+      const combined = new Int16Array(prev.length + pcm.length);
+      combined.set(prev, 0);
+      combined.set(pcm, prev.length);
+      let offset = 0;
+      while (combined.length - offset >= BUFFER_SIZE) {
+        const chunk = combined.slice(offset, offset + BUFFER_SIZE);
+        wsRef.current?.send(chunk.buffer);
+        offset += BUFFER_SIZE;
+      }
+      // Rest im Buffer behalten
+      sampleBufferRef.current = combined.slice(offset);
     };
     source.connect(processor);
     processor.connect(audioContextRef.current.destination);
@@ -57,6 +71,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
     }
     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     wsRef.current?.close();
+    sampleBufferRef.current = new Int16Array(0); // Buffer leeren
   };
 
   return (
