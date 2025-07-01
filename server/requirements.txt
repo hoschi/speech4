@@ -3,4 +3,6 @@ uvicorn
 websockets
 torch
 transformers
-peft 
+peft
+pyctcdecode
+kenlm 

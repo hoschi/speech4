@@ -2,3 +2,8 @@ other-repos
 __pycache__/
 .env
 node_modules
+server/venv/
+# KenLM und Sprachmodelle
+server/lm/
+*.bin
+*.arpa

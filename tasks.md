@@ -42,32 +42,34 @@ Alle Details zur Verbesserung der Ist-Situation nach dem letzten Feature: https:
 Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutlich verbessert
 
 ### 1. Wortverschmelzungen und falsche Trennungen
-- **Shallow Fusion mit KenLM (pyctcdecode):**
-    - Integration eines n-Gramm-Sprachmodells (3-Gramm, deutsch) in den CTC-Decoder (pyctcdecode).
-    - Konfiguration: α ≈ 0.5, β ≈ 1.0.
-- **Real-Time Encoder State Revision:**
-    - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen.
+- [ ] **Shallow Fusion mit KenLM (pyctcdecode):**
+    - Integration eines n-Gramm-Sprachmodells (3-Gramm, deutsch) in den CTC-Decoder (pyctcdecode) vorbereitet (Backend, Fallback-Handling, .gitignore angepasst)
+    - TODO: Passendes KenLM-Modell (3gram_de.bin) unter server/lm/ bereitstellen
+- [ ] **Real-Time Encoder State Revision:**
+    - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
+- [x] .gitignore für Sprachmodelle und Binärdateien angepasst
+- [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
 
 ### 2. Interpunktion und Großschreibung
-- **Online-Punctuation-Module:**
-    - Leichtgewichtiges ELECTRA-basiertes Modell (z. B. angepasstes `dslim/bert-base-NER`) für inkrementelle Satzzeichen nach CTC.
-- **Truecasing-Adapter:**
-    - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven.
+- [ ] **Online-Punctuation-Module:**
+    - Leichtgewichtiges ELECTRA-basiertes Modell (z. B. angepasstes `dslim/bert-base-NER`) für inkrementelle Satzzeichen nach CTC
+- [ ] **Truecasing-Adapter:**
+    - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven
 
 ### 3. Genauere Wortgrenzen und Alignment
-- **Forced Alignment auf CTC-Logits:**
-    - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`).
+- [ ] **Forced Alignment auf CTC-Logits:**
+    - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`)
 
 ### 4. Kontinuierliche Personalisierung
-- **Adapter-Feintuning per LoRA + EWC:**
-    - Nutzer-Korrekturen werden für LoRA-Feintuning (r=16, α=32, EWC) genutzt und als Adapter deployed.
-    - Automatisierter Trainings-Endpoint nach jeder Session.
-- **Hotword-Boosting:**
-    - Boost-Words/Fachbegriffe mit erhöhtem Score via pyctcdecode.
+- [ ] **Adapter-Feintuning per LoRA + EWC:**
+    - Nutzer-Korrekturen werden für LoRA-Feintuning (r=16, α=32, EWC) genutzt und als Adapter deployed
+    - Automatisierter Trainings-Endpoint nach jeder Session
+- [ ] **Hotword-Boosting:**
+    - Boost-Words/Fachbegriffe mit erhöhtem Score via pyctcdecode
 
 ### 5. LLM-gestütztes Rescoring
-- **Zweite Pass-Rescoring mit Transformer-LM:**
-    - Nach erster CTC-Hypothese: N-Best-Liste, Bewertung durch LLM (z. B. GPT-4) mit Cross-Attention für komplexe Begriffe.
+- [ ] **Zweite Pass-Rescoring mit Transformer-LM:**
+    - Nach erster CTC-Hypothese: N-Best-Liste, Bewertung durch LLM (z. B. GPT-4) mit Cross-Attention für komplexe Begriffe
 
 ## Feature: Personalisierungs-Loop
 

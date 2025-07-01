@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 import re
+from pyctcdecode import BeamSearchDecoderCTC
+import os
 
 app = FastAPI()
 
@@ -16,6 +18,16 @@ else:
     processor = processor_obj
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()
+
+# NEU: KenLM Sprachmodell laden (falls vorhanden)
+LM_PATH = "server/lm/3gram_de.bin"
+decoder = None
+if os.path.exists(LM_PATH):
+    vocab_list = list(processor.tokenizer.get_vocab().keys())
+    decoder = BeamSearchDecoderCTC(vocab_list, kenlm_model_path=LM_PATH)
+    print(f"[INFO] KenLM Sprachmodell geladen: {LM_PATH}")
+else:
+    print(f"[WARN] KenLM Sprachmodell nicht gefunden: {LM_PATH}. Es wird der Standard-CTC-Decoder verwendet.")
 
 def remove_word_repeats(text):
     words = text.split()
@@ -58,7 +70,11 @@ async def websocket_stream(websocket: WebSocket):
                         stride_tokens = int(n_tokens * STRIDE / WINDOW_SIZE)
                         middle_tokens = tokens[stride_tokens:n_tokens-stride_tokens] if n_tokens > 2*stride_tokens else []
                         if middle_tokens:
-                            transcription = processor.batch_decode([middle_tokens])[0]
+                            if decoder:
+                                # pyctcdecode mit KenLM nutzen
+                                transcription = decoder.decode(np.array(middle_tokens))
+                            else:
+                                transcription = processor.batch_decode([middle_tokens])[0]
                             await websocket.send_text(transcription)
                         buffer = buffer[WINDOW_SIZE - OVERLAP:]
                 elif "text" in message and message["text"] == "final":
@@ -72,7 +88,10 @@ async def websocket_stream(websocket: WebSocket):
                         predicted_ids = torch.argmax(logits, dim=-1)
                         tokens = predicted_ids[0].tolist()
                         if tokens:
-                            transcription = processor.batch_decode([tokens])[0]
+                            if decoder:
+                                transcription = decoder.decode(np.array(tokens))
+                            else:
+                                transcription = processor.batch_decode([tokens])[0]
                             await websocket.send_text("[FINAL] " + transcription)
     except WebSocketDisconnect:
         print("WebSocket disconnected")
