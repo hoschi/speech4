@@ -62,9 +62,8 @@ pip install ./kenlm
 
 ### 6. Server starten
 ```bash
-cd server
-source venv/bin/activate
-python main.py
+source server/venv/bin/activate
+python server/main.py
 ```
 
 ## KenLM-Binaries für Training verfügbar machen

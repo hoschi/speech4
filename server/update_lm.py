@@ -31,7 +31,7 @@ if __name__ == "__main__":
         print(f"[ERROR] {CORPUS} nicht gefunden!")
         sys.exit(1)
     print("[INFO] Starte KenLM-Training...")
-    run(["lmplz", "-o", "4", "--text", CORPUS, "--arpa", ARPA])
+    run(["lmplz", "-o", "4", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA])
     print("[INFO] Komprimiere Modell...")
     run(["build_binary", ARPA, KENLM_BIN])
     print(f"[INFO] Verschiebe Modell nach {LM_TARGET} ...")

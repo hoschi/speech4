@@ -161,7 +161,7 @@ def train_kenlm_pipeline():
     build_binary_path = shutil.which("build_binary")
     if not lmplz_path or not build_binary_path:
         raise RuntimeError("[ERROR] lmplz oder build_binary nicht im PATH gefunden! Ist KenLM korrekt installiert?")
-    lmplz_cmd = [lmplz_path, "-o", "4", "--text", CORPUS, "--arpa", ARPA]
+    lmplz_cmd = [lmplz_path, "-o", "4", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
     try:
         run(lmplz_cmd)
     except RuntimeError as e:

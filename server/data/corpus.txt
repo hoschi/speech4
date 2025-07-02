@@ -1,2 +1,0 @@
-hallo das ist ein Test, ich spreche in das Mikro
-Ein weiterer Satz mit camelCase wörtern
