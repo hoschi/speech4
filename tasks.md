@@ -43,8 +43,28 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
 
 ### 1. Wortverschmelzungen und falsche Trennungen
 - [ ] **Shallow Fusion mit KenLM (pyctcdecode):**
-    - Integration eines n-Gramm-Sprachmodells (3-Gramm, deutsch) in den CTC-Decoder (pyctcdecode) vorbereitet (Backend, Fallback-Handling, .gitignore angepasst)
-    - TODO: Passendes KenLM-Modell (3gram_de.bin) unter server/lm/ bereitstellen
+    - [x] KenLM-Tools kompilieren (lmplz, build_binary etc.)
+    - [x] Python-Bindings von KenLM im venv installieren
+    - [x] README für Setup und Nutzung ergänzen
+    - [ ] **Datensammlung & Vorverarbeitung:**
+        - Korrekturtexte aus Nutzereingaben sammeln
+        - Vorverarbeitung (Sonderzeichen entfernen, Tokenisierung, ein Satz pro Zeile)
+        - Alles in `corpus.txt` speichern
+    - [ ] **KenLM-Modell trainieren:**
+        - n-Gramm-Modell (3- oder 4-Gramm, Kneser-Ney) mit lmplz bauen
+        - Komprimieren mit build_binary
+        - Modell nach `server/lm/` legen
+    - [ ] **Integration in pyctcdecode:**
+        - Modell im Backend laden und für Decoding nutzen
+    - [ ] **Kontinuierliche Aktualisierung:**
+        - Nach jedem Personalisierungs-Loop neue Korrekturen anhängen
+        - KenLM-Modell neu bauen und bereitstellen
+        - Hot-Reload oder Server-Neustart für neues Modell
+    - [ ] **Automatisierung:**
+        - Trainings-Trigger automatisiert: Textdaten sammeln, Modell trainieren, bereitstellen
+        - Status- und Fehler-Logging
+    - [ ] **Dokumentation & Referenzen:**
+        - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
 - [ ] **Real-Time Encoder State Revision:**
     - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
 - [x] .gitignore für Sprachmodelle und Binärdateien angepasst
