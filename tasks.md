@@ -65,6 +65,7 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
         - Status- und Fehler-Logging
     - [x] **Dokumentation & Referenzen:**
         - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
+    - [ ] Modellerstellung muss Hauptthread blockieren, ohne Modell macht es keinen Sinn das System zu benutzen: `threading.Thread(target=ensure_initial_kenlm, daemon=True).start()`
 
 # Discovered During Work
 - Die KenLM-Trainingspipeline läuft jetzt vollständig in Python, nutzt sys.executable und dynamische Pfade für lmplz/build_binary (venv-sicher).

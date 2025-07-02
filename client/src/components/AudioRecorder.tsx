@@ -1,7 +1,30 @@
 import React, { useRef, useState } from 'react';
+import { z } from 'zod';
+
+const HypothesisChunk = z.object({
+  type: z.literal('hypothesis'),
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+});
+const FinalChunk = z.object({
+  type: z.literal('final'),
+  text: z.string(),
+});
+const ErrorChunk = z.object({
+  type: z.literal('error'),
+  message: z.string(),
+});
+
+const MessageSchema = z.discriminatedUnion('type', [HypothesisChunk, FinalChunk, ErrorChunk]);
+
+type HypothesisChunk = z.infer<typeof HypothesisChunk>;
+type FinalChunk = z.infer<typeof FinalChunk>;
+type ErrorChunk = z.infer<typeof ErrorChunk>;
+export type TranscriptMessage = HypothesisChunk | FinalChunk | ErrorChunk;
 
 type AudioRecorderProps = {
-  onTranscriptChunk: (chunk: string) => void;
+  onTranscriptChunk: (chunk: TranscriptMessage) => void;
 };
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
@@ -58,7 +81,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
       stopRecording();
     };
     wsRef.current.onmessage = (event) => {
-      onTranscriptChunk(event.data);
+      try {
+        const data = JSON.parse(event.data);
+        const parsed = MessageSchema.safeParse(data);
+        if (parsed.success) {
+          onTranscriptChunk(parsed.data);
+        }
+      } catch {
+        // Fallback: ignoriere untypisierte Nachrichten
+      }
     };
     setRecording(true);
   };

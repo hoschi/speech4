@@ -52,6 +52,8 @@ async def websocket_stream(websocket: WebSocket):
     await websocket.accept()
     buffer = np.zeros(0, dtype=np.int16)
     full_audio = []
+    hypotheses = []  # Buffer für Hypothesen: Liste aus Dicts mit 'start', 'end', 'text'
+    audio_offset = 0  # Gesamtanzahl Samples, die bereits verarbeitet wurden
     try:
         while True:
             try:
@@ -75,16 +77,25 @@ async def websocket_stream(websocket: WebSocket):
                         n_tokens = len(tokens)
                         stride_tokens = int(n_tokens * STRIDE / WINDOW_SIZE)
                         middle_tokens = tokens[stride_tokens:n_tokens-stride_tokens] if n_tokens > 2*stride_tokens else []
+                        chunk_start = audio_offset + stride_tokens * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset
+                        chunk_end = audio_offset + (n_tokens - stride_tokens) * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset + WINDOW_SIZE
                         if middle_tokens:
                             if decoder:
-                                # pyctcdecode mit KenLM nutzen
                                 transcription = decoder.decode(np.array(middle_tokens))
                             else:
                                 transcription = processor.batch_decode([middle_tokens])[0]
-                            await websocket.send_text(transcription)
+                            if hypotheses and hypotheses[-1]['end'] > chunk_start:
+                                hypotheses[-1]['end'] = chunk_start
+                            hypotheses.append({'start': chunk_start, 'end': chunk_end, 'text': transcription})
+                            await websocket.send_json({
+                                'type': 'hypothesis',
+                                'start': chunk_start,
+                                'end': chunk_end,
+                                'text': transcription
+                            })
                         buffer = buffer[WINDOW_SIZE - OVERLAP:]
+                        audio_offset += WINDOW_SIZE - OVERLAP
                 elif "text" in message and message["text"] == "final":
-                    # Finales Transkript für das gesamte Audio
                     if full_audio:
                         all_audio = np.concatenate(full_audio)
                         audio_tensor = torch.from_numpy(all_audio).float() / 32768.0
@@ -98,11 +109,18 @@ async def websocket_stream(websocket: WebSocket):
                                 transcription = decoder.decode(np.array(tokens))
                             else:
                                 transcription = processor.batch_decode([tokens])[0]
-                            await websocket.send_text("[FINAL] " + transcription)
+                            await websocket.send_json({
+                                'type': 'final',
+                                'text': transcription
+                            })
     except WebSocketDisconnect:
         print("WebSocket disconnected")
     except Exception as e:
         print(f"Error: {e}")
+        await websocket.send_json({
+            'type': 'error',
+            'message': str(e)
+        })
 
 @app.post("/upload/correction")
 async def upload_correction(text: str = Form(...), audio: UploadFile = File(None)):
