@@ -5,35 +5,51 @@ import torch
 import numpy as np
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 import re
-from pyctcdecode import BeamSearchDecoderCTC
+from pyctcdecode.decoder import BeamSearchDecoderCTC
 import os
 import shutil
 import datetime
 import subprocess
 import sys
 import threading
+import kenlm
+from pyctcdecode.alphabet import Alphabet
+from pyctcdecode.decoder import build_ctcdecoder
 
 app = FastAPI()
 
 # Modell und Processor beim Start laden
 MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
-processor_obj = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
-if isinstance(processor_obj, tuple):
-    processor = processor_obj[0]
-else:
-    processor = processor_obj
-model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
-model.eval()
+processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
 
 # NEU: KenLM Sprachmodell laden (falls vorhanden)
-LM_PATH = "server/lm/3gram_de.bin"
-decoder = None
-if os.path.exists(LM_PATH):
-    vocab_list = list(processor.tokenizer.get_vocab().keys())
-    decoder = BeamSearchDecoderCTC(vocab_list, kenlm_model_path=LM_PATH)
-    print(f"[INFO] KenLM Sprachmodell geladen: {LM_PATH}")
-else:
-    print(f"[WARN] KenLM Sprachmodell nicht gefunden: {LM_PATH}. Es wird der Standard-CTC-Decoder verwendet.")
+LM_PATH = "server/lm/4gram_de.klm"
+
+def init_kenlm_decoder(app):
+    """
+    Stellt sicher, dass das KenLM-Modell existiert und initialisiert den Decoder.
+    Hängt den Decoder an app.state.decoder.
+    """
+    import shutil as _shutil
+    CORPUS = "server/data/corpus.txt"
+    BASE_CORPUS = "german_base_corpus.txt"
+    if not os.path.isfile(LM_PATH):
+        print("[INFO] Kein KenLM-Modell gefunden. Erstelle Basismodell aus german_base_corpus.txt ...")
+        if not os.path.isfile(BASE_CORPUS):
+            raise RuntimeError(f"{BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
+        _shutil.copy(BASE_CORPUS, CORPUS)
+        train_kenlm_pipeline()
+        print(f"[INFO] Basismodell erfolgreich generiert: {LM_PATH}")
+    else:
+        print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
+    labels = list(processor.tokenizer.get_vocab().keys())
+    app.state.decoder = build_ctcdecoder(
+        labels,
+        kenlm_model_path=LM_PATH,
+        alpha=0.5,  # optional, anpassbar
+        beta=1.0    # optional, anpassbar
+    )
+    print(f"[INFO] KenLM Decoder geladen: {LM_PATH}")
 
 def remove_word_repeats(text):
     words = text.split()
@@ -80,8 +96,8 @@ async def websocket_stream(websocket: WebSocket):
                         chunk_start = audio_offset + stride_tokens * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset
                         chunk_end = audio_offset + (n_tokens - stride_tokens) * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset + WINDOW_SIZE
                         if middle_tokens:
-                            if decoder:
-                                transcription = decoder.decode(np.array(middle_tokens))
+                            if app.state.decoder:
+                                transcription = app.state.decoder.decode(np.array(middle_tokens))
                             else:
                                 transcription = processor.batch_decode([middle_tokens])[0]
                             if hypotheses and hypotheses[-1]['end'] > chunk_start:
@@ -105,8 +121,8 @@ async def websocket_stream(websocket: WebSocket):
                         predicted_ids = torch.argmax(logits, dim=-1)
                         tokens = predicted_ids[0].tolist()
                         if tokens:
-                            if decoder:
-                                transcription = decoder.decode(np.array(tokens))
+                            if app.state.decoder:
+                                transcription = app.state.decoder.decode(np.array(tokens))
                             else:
                                 transcription = processor.batch_decode([tokens])[0]
                             await websocket.send_json({
@@ -179,7 +195,8 @@ def train_kenlm_pipeline():
     build_binary_path = shutil.which("build_binary")
     if not lmplz_path or not build_binary_path:
         raise RuntimeError("[ERROR] lmplz oder build_binary nicht im PATH gefunden! Ist KenLM korrekt installiert?")
-    lmplz_cmd = [lmplz_path, "-o", "4", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
+    lmplz_cmd = [lmplz_path, "-o", "4","-T","8", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
+
     try:
         run(lmplz_cmd)
     except RuntimeError as e:
@@ -208,32 +225,8 @@ def train_lm():
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
 
-def ensure_initial_kenlm():
-    """
-    Prüft beim Serverstart, ob ein KenLM-Modell existiert. Falls nicht, wird es aus german_base_corpus.txt generiert.
-    Die Basisdaten werden als server/data/corpus.txt gespeichert und dienen als Grundlage für spätere Trainings mit Korrekturen.
-    """
-    LM_PATH = "server/lm/4gram_de.klm"
-    CORPUS = "server/data/corpus.txt"
-    BASE_CORPUS = "german_base_corpus.txt"
-    if not os.path.isfile(LM_PATH):
-        print("[INFO] Kein KenLM-Modell gefunden. Erstelle Basismodell aus german_base_corpus.txt ...")
-        if not os.path.isfile(BASE_CORPUS):
-            print(f"[ERROR] {BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
-            return
-        # Basisdaten als Korpus speichern (überschreibt evtl. alte Korrekturen beim allerersten Start)
-        import shutil as _shutil
-        _shutil.copy(BASE_CORPUS, CORPUS)
-        try:
-            train_kenlm_pipeline()
-            print(f"[INFO] Basismodell erfolgreich generiert: {LM_PATH}")
-        except Exception as e:
-            print(f"[ERROR] Basismodell konnte nicht erstellt werden: {e}")
-    else:
-        print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
-
-# Beim Serverstart initiales Modell sicherstellen (jetzt blockierend)
-ensure_initial_kenlm()
+# Initialisierung beim Serverstart (blockierend, garantiert Decoder)
+init_kenlm_decoder(app)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
