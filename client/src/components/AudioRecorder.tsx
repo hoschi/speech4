@@ -90,11 +90,9 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
     wsRef.current.onopen = () => setWsStatus('connected');
     wsRef.current.onclose = () => {
       setWsStatus('disconnected');
-      stopRecording();
     };
     wsRef.current.onerror = () => {
       setWsStatus('error');
-      stopRecording();
     };
     wsRef.current.onmessage = (event) => {
       try {
