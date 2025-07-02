@@ -179,4 +179,13 @@ Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier
 
 - [ ] Audioaufnahme im Client von ScriptProcessorNode auf AudioWorkletNode umstellen (Web Audio API Best Practice)
 
+## Optionale Verbesserungen
+
+- [ ] **KenLM auf ARPA-Format umstellen:**
+    - Lade und verwende das KenLM-Modell direkt im ARPA-Textformat statt als .klm-Binary.
+    - Vorteil: pyctcdecode kann Unigramme korrekt extrahieren, keine Warnungen mehr, bessere Decoding-Qualität.
+    - Nachteil: ARPA-Datei ist größer, Laden minimal langsamer (nur beim Start relevant).
+    - Umbau ist einfach: build_binary-Schritt weglassen, stattdessen .arpa-Datei verschieben und als Modellpfad verwenden.
+    - Umsetzung erst, wenn alle anderen Features stabil laufen.
+
 

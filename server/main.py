@@ -21,6 +21,8 @@ app = FastAPI()
 # Modell und Processor beim Start laden
 MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
 processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
+model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
+model.eval()
 
 # NEU: KenLM Sprachmodell laden (falls vorhanden)
 LM_PATH = "server/lm/4gram_de.klm"
