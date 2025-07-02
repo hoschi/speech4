@@ -15,6 +15,7 @@ import threading
 import kenlm
 from pyctcdecode.alphabet import Alphabet
 from pyctcdecode.decoder import build_ctcdecoder
+import json
 
 app = FastAPI()
 
@@ -81,29 +82,41 @@ async def websocket_stream(websocket: WebSocket):
                 break
             if message["type"] == "websocket.receive":
                 if "bytes" in message:
+                    # Empfange neuen Audio-Chunk vom Client und füge ihn zum Buffer hinzu
                     chunk = np.frombuffer(message["bytes"], dtype=np.int16)
                     buffer = np.concatenate([buffer, chunk])
                     full_audio.append(chunk)
+                    # Solange genug Samples für ein Fenster vorhanden sind, führe Inferenz durch
                     while len(buffer) >= WINDOW_SIZE:
+                        # Extrahiere ein Fenster (z.B. 3 Sekunden) für die Inferenz
                         audio_chunk = buffer[:WINDOW_SIZE].copy()
+                        # Wandle PCM in Float-Tensor um und normalisiere auf [-1, 1]
                         audio_tensor = torch.from_numpy(audio_chunk).float() / 32768.0
+                        # Feature-Extraktion und Padding via Processor
                         input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
                         with torch.no_grad():
+                            # Modell-Inferenz: Erzeuge Logits (Wahrscheinlichkeiten für jedes Token pro Frame)
                             logits = model(input_values).logits
                         n_frames = logits.shape[1]
+                        # Berechne wie viele Frames vorne und hinten als Overlap ignoriert werden (für Kontext)
                         stride_frames = int(n_frames * STRIDE / WINDOW_SIZE)
+                        # Nutze nur die mittleren Frames für das aktuelle Fenster (Overlapping-Chunking)
                         middle_logits = logits[0][stride_frames:n_frames-stride_frames] if n_frames > 2*stride_frames else logits[0]
+                        # Berechne Start- und Endposition des aktuellen Chunks im Gesamtaudio
                         chunk_start = audio_offset + stride_frames * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset
                         chunk_end = audio_offset + (n_frames - stride_frames) * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset + WINDOW_SIZE
                         if middle_logits.shape[0] > 0:
+                            # Dekodiere die Logits zu Text (mit KenLM, falls vorhanden)
                             if app.state.decoder:
                                 transcription = app.state.decoder.decode(middle_logits.cpu().numpy())
                             else:
                                 predicted_ids = torch.argmax(middle_logits, dim=-1)
                                 tokens = predicted_ids.tolist()
                                 transcription = processor.batch_decode([tokens])[0]
+                            # Verhindere Überschneidungen mit vorherigem Chunk
                             if hypotheses and hypotheses[-1]['end'] > chunk_start:
                                 hypotheses[-1]['end'] = chunk_start
+                            # Speichere Hypothese und sende sie an den Client
                             hypotheses.append({'start': chunk_start, 'end': chunk_end, 'text': transcription})
                             await websocket.send_json({
                                 'type': 'hypothesis',
@@ -111,26 +124,35 @@ async def websocket_stream(websocket: WebSocket):
                                 'end': chunk_end,
                                 'text': transcription
                             })
+                        # Entferne das verarbeitete Fenster, lasse Overlap für Kontext stehen
                         buffer = buffer[WINDOW_SIZE - OVERLAP:]
                         audio_offset += WINDOW_SIZE - OVERLAP
-                elif "text" in message and message["text"] == "final":
-                    if full_audio:
-                        all_audio = np.concatenate(full_audio)
-                        audio_tensor = torch.from_numpy(all_audio).float() / 32768.0
-                        input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
-                        with torch.no_grad():
-                            logits = model(input_values).logits
-                        if logits.shape[1] > 0:
-                            if app.state.decoder:
-                                transcription = app.state.decoder.decode(logits[0].cpu().numpy())
-                            else:
-                                predicted_ids = torch.argmax(logits, dim=-1)
-                                tokens = predicted_ids[0].tolist()
-                                transcription = processor.batch_decode([tokens])[0]
-                            await websocket.send_json({
-                                'type': 'final',
-                                'text': transcription
-                            })
+                elif "text" in message:
+                    try:
+                        data = json.loads(message["text"])
+                        if isinstance(data, dict) and data.get("text") == "final":
+                            # Finale Nachricht vom Client: Gesamtes Audio verarbeiten
+                            if full_audio:
+                                all_audio = np.concatenate(full_audio)
+                                audio_tensor = torch.from_numpy(all_audio).float() / 32768.0
+                                input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
+                                with torch.no_grad():
+                                    logits = model(input_values).logits
+                                if logits.shape[1] > 0:
+                                    # Dekodiere das gesamte Audio zu einem finalen Transkript
+                                    if app.state.decoder:
+                                        transcription = app.state.decoder.decode(logits[0].cpu().numpy())
+                                    else:
+                                        predicted_ids = torch.argmax(logits, dim=-1)
+                                        tokens = predicted_ids[0].tolist()
+                                        transcription = processor.batch_decode([tokens])[0]
+                                    # Sende das finale Transkript an den Client
+                                    await websocket.send_json({
+                                        'type': 'final',
+                                        'text': transcription
+                                    })
+                    except Exception:
+                        pass  # ignore non-JSON text messages
     except WebSocketDisconnect:
         print("WebSocket disconnected")
     except Exception as e:

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { z } from 'zod';
 
 const HypothesisChunk = z.object({
@@ -25,9 +25,12 @@ export type TranscriptMessage = HypothesisChunk | FinalChunk | ErrorChunk;
 
 type AudioRecorderProps = {
   onTranscriptChunk: (chunk: TranscriptMessage) => void;
+  onRecordingChange?: (rec: boolean) => void;
+  onFinal?: () => void;
 };
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
+const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
+  const { onTranscriptChunk, onRecordingChange } = props;
   const wsRef = useRef<WebSocket | null>(null);
   const [recording, setRecording] = useState(false);
   const [wsStatus, setWsStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
@@ -36,6 +39,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const BUFFER_SIZE = 16000; // 1 Sekunde @ 16kHz
   const sampleBufferRef = useRef<Int16Array>(new Int16Array(0));
+
+  // Cleanup-Methode für App
+  useImperativeHandle(ref, () => ({
+    cleanup: () => {
+      processorRef.current?.disconnect();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      wsRef.current?.close();
+      sampleBufferRef.current = new Int16Array(0);
+    }
+  }));
 
   const startRecording = async () => {
     if (recording) return;
@@ -92,17 +108,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
       }
     };
     setRecording(true);
+    if (typeof onRecordingChange === 'function') onRecordingChange(true);
   };
 
   const stopRecording = () => {
-    setRecording(false);
-    processorRef.current?.disconnect();
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
+    console.log("stopRecording")
+    // Sende "final"-Nachricht an den Server
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket is not open when trying to send final message!');
     }
-    mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-    wsRef.current?.close();
-    sampleBufferRef.current = new Int16Array(0); // Buffer leeren
+    wsRef.current.send(JSON.stringify({ text: "final" }));
+    setRecording(false);
+    if (typeof onRecordingChange === 'function') onRecordingChange(false);
+    // Ressourcen werden erst nach Empfang von "final" abgebaut!
   };
 
   return (
@@ -118,6 +136,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptChunk }) => {
       )}
     </div>
   );
-};
+});
 
 export default AudioRecorder; 

@@ -3,25 +3,25 @@ description:
 globs: 
 alwaysApply: true
 ---
-### 🔄 Projektkenntnis und -kontext
-- **Lesen Sie zu Beginn eines neuen Gesprächs immer `plan.md`**, um die Architektur, die Ziele, den Stil und die Beschränkungen des Projekts zu verstehen.
-- **Prüfen Sie `tasks.md`**, bevor Sie eine neue Aufgabe beginnen. Wenn die Aufgabe nicht aufgeführt ist, fügen Sie sie mit einer kurzen Beschreibung und dem heutigen Datum hinzu.
-- **Verwenden Sie konsistente Benennungskonventionen, Dateistrukturen und Architekturmuster**, wie in `plan.md` beschrieben.
-- werden Entscheidungen getroffen müssen diese in `plan.md` oder `tasks.md` festgehalten werden damit der Code immer zu unserem Plan passt
+### 🔄 Project knowledge and context
+- Always read `plan.md`** at the beginning of a new conversation to understand the architecture, goals, style and constraints of the project.
+- Check `tasks.md`** before starting a new task. If the task is not listed, add it with a brief description and today's date.
+- Use consistent naming conventions, file structures and architectural patterns** as described in `plan.md`.
+- When decisions are made, they must be recorded in `plan.md` or `tasks.md` so that the code always matches our plan
 
-### 🧱 Code-Struktur & Modularität
-- **Erstelle niemals eine Datei, die länger als 500 Zeilen Code ist.** Wenn sich eine Datei dieser Grenze nähert, refaktorisiere sie, indem du sie in Module oder Hilfsdateien aufteilst.
-- **Organisieren Sie den Code in klar getrennte Module**, gruppiert nach Funktion oder Verantwortung.
-- **Verwenden Sie klare, konsistente Importe** (bevorzugen Sie relative Importe innerhalb von Paketen).
+### 🧱 Code structure & modularity
+- **Never create a file that is longer than 500 lines of code.** If a file approaches this limit, refactor it by splitting it into modules or auxiliary files.
+- **Organize code into clearly separated modules**, grouped by function or responsibility.
+- **Use clear, consistent imports** (prefer relative imports within packages).
 
-### ✅ Aufgabenerledigung
-- **Markieren Sie abgeschlossene Aufgaben in `tasks.md`** sofort nach ihrer Erledigung.
-- Fügen Sie neue Unteraufgaben oder TODOs, die während der Entwicklung entdeckt wurden, in `tasks.md` unter einem Abschnitt "Discovered During Work" dem aktuellen Feature hinzu.
+### ✅ Task completion
+- Mark completed tasks in `tasks.md`** immediately after their completion.
+- Add new subtasks or TODOs discovered during development to the current feature in `tasks.md` under a "Discovered During Work" section.
 
-### Auskommentieren von Code
+### Commenting out code
 
-Lieber Code löschen als auskommentieren, das ist nur zu testzwecken erlaubt
+It is better to delete code than to comment it out, this is only allowed for testing purposes
 
-### Änderungen direkt machen statt zu fragen
+### Make changes directly instead of asking
 
-Bei Änderungen die nur eine Datei betreffen und nicht mehrere wende diese sofort an und frage nicht um Erlaubnis wenn es keine Optionen zur Auswahl für mich gibt.
+For changes that only affect one file and not several, apply them immediately and do not ask for permission if there are no options for me to choose from.

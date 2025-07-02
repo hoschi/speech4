@@ -3,10 +3,11 @@ import React, { useRef, useState } from 'react';
 type TranscriptEditorProps = {
   transcript: string;
   setTranscript: (t: string) => void;
+  disabled?: boolean;
 };
 
-const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, setTranscript }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, setTranscript, disabled = false }) => {
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,18 +42,19 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, setTran
   return (
     <div style={{ margin: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
       <label htmlFor="transcript" className="transcript-label">Transkript:</label>
-      <input
+      <textarea
         id="transcript"
-        type="text"
         value={transcript}
-        onChange={e => setTranscript(e.target.value)}
+        rows={4}
+        {...(setTranscript ? { onChange: e => setTranscript(e.target.value) } : {})}
         className="transcript-input"
         ref={inputRef}
-        disabled={uploaded}
+        disabled={uploaded || disabled}
+        style={{ resize: 'vertical', minHeight: '4em', maxWidth: 420 }}
       />
       <button
         onClick={handleUpload}
-        disabled={loading || !transcript.trim() || uploaded}
+        disabled={loading || !transcript.trim() || uploaded || disabled}
         style={{ marginTop: '1rem', minWidth: 120 }}
       >
         {loading ? 'Hochladen...' : uploaded ? 'Hochgeladen' : 'Korrektur hochladen'}
