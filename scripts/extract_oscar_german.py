@@ -18,7 +18,8 @@ def extract_german_text_for_kenlm(max_lines=20000):
             elif isinstance(example, str):
                 text = example
             text = text.strip()
-            if len(text) > 10:
+            # Filter: mindestens 10 Wörter
+            if len(text.split()) >= 10:
                 f.write(text + '\n')
                 written += 1
                 if written % 1000 == 0:
