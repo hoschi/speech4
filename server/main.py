@@ -90,18 +90,18 @@ async def websocket_stream(websocket: WebSocket):
                         input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
                         with torch.no_grad():
                             logits = model(input_values).logits
-                        predicted_ids = torch.argmax(logits, dim=-1)
-                        tokens = predicted_ids[0].tolist()
-                        n_tokens = len(tokens)
-                        stride_tokens = int(n_tokens * STRIDE / WINDOW_SIZE)
-                        middle_tokens = tokens[stride_tokens:n_tokens-stride_tokens] if n_tokens > 2*stride_tokens else []
-                        chunk_start = audio_offset + stride_tokens * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset
-                        chunk_end = audio_offset + (n_tokens - stride_tokens) * int(WINDOW_SIZE / n_tokens) if n_tokens > 0 else audio_offset + WINDOW_SIZE
-                        if middle_tokens:
+                        n_frames = logits.shape[1]
+                        stride_frames = int(n_frames * STRIDE / WINDOW_SIZE)
+                        middle_logits = logits[0][stride_frames:n_frames-stride_frames] if n_frames > 2*stride_frames else logits[0]
+                        chunk_start = audio_offset + stride_frames * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset
+                        chunk_end = audio_offset + (n_frames - stride_frames) * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset + WINDOW_SIZE
+                        if middle_logits.shape[0] > 0:
                             if app.state.decoder:
-                                transcription = app.state.decoder.decode(np.array(middle_tokens))
+                                transcription = app.state.decoder.decode(middle_logits.cpu().numpy())
                             else:
-                                transcription = processor.batch_decode([middle_tokens])[0]
+                                predicted_ids = torch.argmax(middle_logits, dim=-1)
+                                tokens = predicted_ids.tolist()
+                                transcription = processor.batch_decode([tokens])[0]
                             if hypotheses and hypotheses[-1]['end'] > chunk_start:
                                 hypotheses[-1]['end'] = chunk_start
                             hypotheses.append({'start': chunk_start, 'end': chunk_end, 'text': transcription})
@@ -120,12 +120,12 @@ async def websocket_stream(websocket: WebSocket):
                         input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
                         with torch.no_grad():
                             logits = model(input_values).logits
-                        predicted_ids = torch.argmax(logits, dim=-1)
-                        tokens = predicted_ids[0].tolist()
-                        if tokens:
+                        if logits.shape[1] > 0:
                             if app.state.decoder:
-                                transcription = app.state.decoder.decode(np.array(tokens))
+                                transcription = app.state.decoder.decode(logits[0].cpu().numpy())
                             else:
+                                predicted_ids = torch.argmax(logits, dim=-1)
+                                tokens = predicted_ids[0].tolist()
                                 transcription = processor.batch_decode([tokens])[0]
                             await websocket.send_json({
                                 'type': 'final',

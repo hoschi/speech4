@@ -22,3 +22,6 @@ alwaysApply: true
 
 Lieber Code löschen als auskommentieren, das ist nur zu testzwecken erlaubt
 
+### Änderungen direkt machen statt zu fragen
+
+Bei Änderungen die nur eine Datei betreffen und nicht mehrere wende diese sofort an und frage nicht um Erlaubnis wenn es keine Optionen zur Auswahl für mich gibt.
