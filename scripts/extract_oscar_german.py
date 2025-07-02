@@ -33,7 +33,6 @@ def extract_german_text_for_kenlm():
             if len(text.split()) >= 10:
                 f.write(text + '\n')
                 written += 1
-                time.sleep(0.4)
                 if written % 1000 == 0:
                     size_gb = os.path.getsize(out_path) / (1024 * 1024 * 1024)
                     print(f"{written} Zeilen geschrieben... ({size_gb:.2f} GB)")
