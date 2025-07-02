@@ -1,0 +1,19 @@
+
+[RUN] /Users/hoschi/repos/speech3/server/venv/bin/python server/preprocess_corrections.py
+Korrigiert und hinzugefügt: 2025-07-02_09-45-54.txt
+
+[RUN] /Users/hoschi/repos/speech3/server/venv/bin/python server/preprocess_corrections.py
+Keine neuen Korrekturdateien gefunden.
+
+[RUN] /Users/hoschi/repos/speech3/server/venv/bin/lmplz -o 4 --text server/data/corpus.txt --arpa server/data/corpus.arpa
+=== 1/5 Counting and sorting n-grams ===
+Reading fd 3
+----5---10---15---20---25---30---35---40---45---50---55---60---65---70---75---80---85---90---95--100
+****************************************************************************************************
+Unigram tokens 16 types 18
+=== 2/5 Calculating and sorting adjusted counts ===
+Chain sizes: 1:216 2:4678772736 3:8772699136 4:14036319232
+/Users/hoschi/repos/speech3/kenlm/lm/builder/adjust_counts.cc:52 in void lm::builder::(anonymous namespace)::StatCollector::CalculateDiscounts(const DiscountConfig &) threw BadDiscountException because `s.n[j] == 0'.
+Could not calculate Kneser-Ney discounts for 1-grams with adjusted count 4 because we didn't observe any 1-grams with adjusted count 3; Is this small or artificial data?
+Try deduplicating the input.  To override this error for e.g. a class-based model, rerun with --discount_fallback
+

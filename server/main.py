@@ -11,6 +11,7 @@ import shutil
 import datetime
 import subprocess
 import sys
+import threading
 
 app = FastAPI()
 
@@ -123,9 +124,11 @@ async def upload_correction(text: str = Form(...), audio: UploadFile = File(None
 def train_kenlm_pipeline():
     """
     Führt die gesamte Pipeline aus: Vorverarbeitung, KenLM-Training, Modellbereitstellung.
+    Nutzt als Fallback den Basis-Korpus (german_base_corpus.txt), falls noch keine Korrekturen vorliegen.
     """
     LOG = "server/data/update_lm.log"
     CORPUS = "server/data/corpus.txt"
+    BASE_CORPUS = "german_base_corpus.txt"
     ARPA = "server/data/corpus.arpa"
     KENLM_BIN = "server/data/corpus.klm"
     LM_TARGET = "server/lm/4gram_de.klm"
@@ -145,18 +148,35 @@ def train_kenlm_pipeline():
 
     # 1. Vorverarbeitung (immer venv-Python)
     run([sys.executable, "server/preprocess_corrections.py"])
-    if not os.path.isfile(CORPUS):
-        raise RuntimeError(f"[ERROR] {CORPUS} nicht gefunden!")
+    # Prüfe, ob Korpus leer ist oder keine Korrekturen vorliegen
+    use_base = False
+    if not os.path.isfile(CORPUS) or os.path.getsize(CORPUS) < 10:
+        if os.path.isfile(BASE_CORPUS):
+            run(["cp", BASE_CORPUS, CORPUS])
+            use_base = True
+        else:
+            raise RuntimeError(f"[ERROR] Kein Korrektur-Korpus und keine Basisdatei {BASE_CORPUS} gefunden!")
     # 2. KenLM-Training
     lmplz_path = shutil.which("lmplz")
     build_binary_path = shutil.which("build_binary")
     if not lmplz_path or not build_binary_path:
         raise RuntimeError("[ERROR] lmplz oder build_binary nicht im PATH gefunden! Ist KenLM korrekt installiert?")
-    run([lmplz_path, "-o", "4", "--text", CORPUS, "--arpa", ARPA])
+    lmplz_cmd = [lmplz_path, "-o", "4", "--text", CORPUS, "--arpa", ARPA]
+    try:
+        run(lmplz_cmd)
+    except RuntimeError as e:
+        # Fallback: --discount_fallback bei kleinen Daten
+        if 'BadDiscountException' in str(e) or 'discount' in str(e):
+            lmplz_cmd.insert(3, "--discount_fallback")
+            run(lmplz_cmd)
+        else:
+            raise
     # 3. Komprimieren
     run([build_binary_path, ARPA, KENLM_BIN])
     # 4. Modell verschieben
     shutil.move(KENLM_BIN, LM_TARGET)
+    if use_base:
+        return f"[SUCCESS] KenLM-Basismodell aus {BASE_CORPUS} generiert: {LM_TARGET}"
     return f"[SUCCESS] KenLM-Modell bereit: {LM_TARGET}"
 
 @app.post("/train/lm")
@@ -169,6 +189,33 @@ def train_lm():
         return JSONResponse(content={"status": "success", "output": output})
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
+
+def ensure_initial_kenlm():
+    """
+    Prüft beim Serverstart, ob ein KenLM-Modell existiert. Falls nicht, wird es aus german_base_corpus.txt generiert.
+    Die Basisdaten werden als server/data/corpus.txt gespeichert und dienen als Grundlage für spätere Trainings mit Korrekturen.
+    """
+    LM_PATH = "server/lm/4gram_de.klm"
+    CORPUS = "server/data/corpus.txt"
+    BASE_CORPUS = "german_base_corpus.txt"
+    if not os.path.isfile(LM_PATH):
+        print("[INFO] Kein KenLM-Modell gefunden. Erstelle Basismodell aus german_base_corpus.txt ...")
+        if not os.path.isfile(BASE_CORPUS):
+            print(f"[ERROR] {BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
+            return
+        # Basisdaten als Korpus speichern (überschreibt evtl. alte Korrekturen beim allerersten Start)
+        import shutil as _shutil
+        _shutil.copy(BASE_CORPUS, CORPUS)
+        try:
+            train_kenlm_pipeline()
+            print(f"[INFO] Basismodell erfolgreich generiert: {LM_PATH}")
+        except Exception as e:
+            print(f"[ERROR] Basismodell konnte nicht erstellt werden: {e}")
+    else:
+        print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
+
+# Beim Serverstart initiales Modell sicherstellen (in Thread, um Startup nicht zu blockieren)
+threading.Thread(target=ensure_initial_kenlm, daemon=True).start()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

@@ -67,6 +67,18 @@ source venv/bin/activate
 python main.py
 ```
 
+## KenLM-Binaries für Training verfügbar machen
+
+Nach dem Kompilieren von KenLM (siehe oben) müssen die Binaries `lmplz` und `build_binary` für das Training im Backend verfügbar sein. Das geht am einfachsten per Symlink in das venv-Bin-Verzeichnis:
+
+```bash
+ln -sf $(pwd)/kenlm/build/bin/lmplz server/venv/bin/lmplz
+ln -sf $(pwd)/kenlm/build/bin/build_binary server/venv/bin/build_binary
+```
+
+- Dadurch findet das Backend die Tools automatisch, wenn das Training per API oder UI ausgelöst wird.
+- Diese Symlinks (und das gesamte venv-Verzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
+
 ## Hinweise
 - Das Verzeichnis `server/venv/` und große Modelle werden nicht versioniert (siehe .gitignore)
 - Für die ASR-Qualität ist ein passendes KenLM-Modell erforderlich
@@ -75,6 +87,27 @@ python main.py
 ## Troubleshooting
 - Bei Problemen mit KenLM: Stelle sicher, dass Python 3.10 verwendet wird und alle Build-Tools installiert sind
 - Für ARM/Mac: Homebrew clang/cmake empfohlen
+
+## Basis-Korpus für initiales Training (Fallback)
+
+Falls noch nie ein Training stattgefunden hat und keine Korrekturdaten vorliegen, kannst du einen großen deutschen Korpus als Startpunkt nutzen. Empfohlen wird OSCAR-2301:
+
+### Schritt 1: Basis-Korpus herunterladen
+
+```bash
+wget https://huggingface.co/datasets/oscar-corpus/OSCAR-2301/resolve/main/de/de.jsonl.gz
+```
+
+### Schritt 2: Preprocessing (Texte extrahieren)
+
+```bash
+gunzip de.jsonl.gz
+# Dann mit Python (ohne jq) die Texte extrahieren:
+python -c "import json; f=open('de.jsonl'); [print(json.loads(line)['text']) for line in f]" > german_base_corpus.txt
+```
+
+- Die Datei `german_base_corpus.txt` kann als Ausgangspunkt für das initiale KenLM-Training verwendet werden, bis genügend echte Korrekturen gesammelt wurden.
+- Für produktive Nutzung: Korpus regelmäßig mit echten Nutzerdaten/Korrekturen ergänzen!
 
 ---
 
