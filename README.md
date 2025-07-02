@@ -113,6 +113,7 @@ huggingface-cli login
 ```bash
 source server/venv/bin/activate
 pip install datasets
+pip install zstandard
 python scripts/extract_oscar_german.py
 ```
 
