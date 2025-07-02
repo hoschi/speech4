@@ -77,6 +77,7 @@ async def websocket_stream(websocket: WebSocket):
         while True:
             try:
                 message = await websocket.receive()
+                print(f"[WS] Empfangen: type={message.get('type')} keys={list(message.keys())} size={len(message.get('bytes', b'')) if 'bytes' in message else '-'} text={message.get('text', '')[:100]}")
             except RuntimeError as e:
                 # Verbindung wurde vom Client geschlossen
                 break
@@ -253,4 +254,4 @@ def train_lm():
 init_kenlm_decoder(app)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

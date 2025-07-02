@@ -74,12 +74,8 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
     - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
 - [x] .gitignore für Sprachmodelle und Binärdateien angepasst
 - [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
-
-### 2. Interpunktion und Großschreibung
-- [ ] **Online-Punctuation-Module:**
-    - Leichtgewichtiges ELECTRA-basiertes Modell (z. B. angepasstes `dslim/bert-base-NER`) für inkrementelle Satzzeichen nach CTC
-- [ ] **Truecasing-Adapter:**
-    - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven
+- [ ] Modell `wav2vec2-xls-r-1B-german` verwenden statt facebook/wav2vec2-large-xlsr-53-german
+- [ ] Integration von `wav2vec-S` für optimierte Streaming-Inferenz
 
 ### 3. Genauere Wortgrenzen und Alignment
 - [ ] **Forced Alignment auf CTC-Logits:**
@@ -169,18 +165,9 @@ Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier
 - [ ] CI/CD-Pipeline für Builds, Tests und Deployments einrichten (Docker, GitHub Actions)
 
 
-**Regeln für die Coding-KI:**
-
-- Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
-- Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.
-
-
 ## Feature: Improvements
 
 - [ ] Audioaufnahme im Client von ScriptProcessorNode auf AudioWorkletNode umstellen (Web Audio API Best Practice)
-
-## Optionale Verbesserungen
-
 - [ ] **KenLM auf ARPA-Format umstellen:**
     - Lade und verwende das KenLM-Modell direkt im ARPA-Textformat statt als .klm-Binary.
     - Vorteil: pyctcdecode kann Unigramme korrekt extrahieren, keine Warnungen mehr, bessere Decoding-Qualität.
@@ -188,4 +175,18 @@ Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier
     - Umbau ist einfach: build_binary-Schritt weglassen, stattdessen .arpa-Datei verschieben und als Modellpfad verwenden.
     - Umsetzung erst, wenn alle anderen Features stabil laufen.
 
+
+### Interpunktion und Großschreibung verbesssern
+
+Wird aktuell von LLM über Olama gefixed.
+
+- [ ] **Online-Punctuation-Module:**
+    - Leichtgewichtiges ELECTRA-basiertes Modell (z. B. angepasstes `dslim/bert-base-NER`) für inkrementelle Satzzeichen nach CTC
+- [ ] **Truecasing-Adapter:**
+    - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven
+
+**Regeln für die Coding-KI:**
+
+- Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
+- Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.
 

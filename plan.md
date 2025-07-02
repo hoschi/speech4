@@ -10,7 +10,9 @@ Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger 
 - **Server:** MacBook Pro M1 (32 GB RAM, Apple Neural Engine)  
 - **Client:** React-Web-Frontend (Web-Audio API für Audio-Capture, Anzeige der Transkripte)  
 - **Kommunikation:** Bidirektionale WebSocket-Verbindung zum Streamen von 20 ms PCM-Chunks und Transkriptions-Chunks  
-- **Inferenz:** `facebook/wav2vec2-large-xlsr-53-german` über PyTorch auf CPU/Neural Engine (< 100 ms/Chunk)  
+- **Inferenz (Batch \& Streaming):**
+    - Basis-Akustikmodell: `wav2vec2-xls-r-1B-german` über PyTorch auf CPU/Neural Engine (kleiner 100 ms/Chunk)
+    - Streaming-optimiertes Modell: `wav2vec-S` für niedrige Latenz und konsistente Echtzeit-Qualität
 - **Batch-Training:** Python-Endpoint mit HuggingFace Transformers + PEFT (LoRA-Adapter + EWC)
 
 #### Beschränkungen
@@ -21,7 +23,7 @@ Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger 
 #### Technischer Stack
 | Ebene               | Technologie                                    |
 |---------------------|------------------------------------------------|
-| Modellbasis         | facebook/wav2vec2-large-xlsr-53-german         |
+| Modellbasis         | wav2vec2-xls-r-1B-german                       |
 | Adapter-Feintuning  | LoRA (r=16, α=32, dropout=0.1)                 |
 | Forgetting-Schutz   | Elastic Weight Consolidation (EWC)             |
 | Streaming-Server    | Python + WebSocket (uvicorn, websockets)       |
