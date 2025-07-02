@@ -1,5 +1,6 @@
 from datasets import load_dataset
 import os
+import time
 
 TARGET_SIZE_GB = 40
 TARGET_SIZE_BYTES = TARGET_SIZE_GB * 1024 * 1024 * 1024
@@ -27,10 +28,12 @@ def extract_german_text_for_kenlm():
             elif isinstance(example, str):
                 text = example
             text = text.strip()
+            text = text.replace('\n', ' ').replace('\r', ' ')
             # Filter: mindestens 10 Wörter
             if len(text.split()) >= 10:
                 f.write(text + '\n')
                 written += 1
+                time.sleep(0.4)
                 if written % 1000 == 0:
                     size_gb = os.path.getsize(out_path) / (1024 * 1024 * 1024)
                     print(f"{written} Zeilen geschrieben... ({size_gb:.2f} GB)")
