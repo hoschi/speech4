@@ -92,18 +92,28 @@ ln -sf $(pwd)/kenlm/build/bin/build_binary server/venv/bin/build_binary
 
 Falls noch nie ein Training stattgefunden hat und keine Korrekturdaten vorliegen, kannst du einen großen deutschen Korpus als Startpunkt nutzen. Empfohlen wird OSCAR-2301:
 
-### Schritt 1: Basis-Korpus herunterladen
+### Schritt 1: Hugging Face Account & Token
+- Erstelle einen Account auf https://huggingface.co
+- Gehe zu Settings → Access Tokens und erstelle einen Token (mind. Read-Berechtigung)
 
+### Schritt 2: Zugang zum Dataset beantragen
+- Besuche https://huggingface.co/datasets/oscar-corpus/OSCAR-2301
+- Akzeptiere die Nutzungsbedingungen (meist sofort freigeschaltet)
+
+### Schritt 3: Authentifizierung mit huggingface-cli
 ```bash
-wget https://huggingface.co/datasets/oscar-corpus/OSCAR-2301/resolve/main/de/de.jsonl.gz
+pip install huggingface_hub[cli]
+huggingface-cli login
+# Gib deinen Token ein
 ```
 
-### Schritt 2: Preprocessing (Texte extrahieren)
+### Schritt 4: Download/Streaming mit der datasets library
 
+- Führe das Skript nach erfolgreichem Login in deiner venv aus:
 ```bash
-gunzip de.jsonl.gz
-# Dann mit Python (ohne jq) die Texte extrahieren:
-python -c "import json; f=open('de.jsonl'); [print(json.loads(line)['text']) for line in f]" > german_base_corpus.txt
+source server/venv/bin/activate
+pip install datasets
+python scripts/extract_oscar_german.py
 ```
 
 - Die Datei `german_base_corpus.txt` kann als Ausgangspunkt für das initiale KenLM-Training verwendet werden, bis genügend echte Korrekturen gesammelt wurden.
