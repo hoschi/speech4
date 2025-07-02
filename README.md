@@ -1,3 +1,16 @@
+# Projektübersicht
+
+## Ordnerstruktur & Inhalte
+
+- **client/**: React-Frontend für Audioaufnahme, Transkriptanzeige und Korrektureingabe.
+- **server/**: Python-Backend (FastAPI) für Streaming-ASR, Korrektur-Upload, KenLM-Training und Modellbereitstellung.
+  - **server/data/**: Enthält Trainingsdaten für das Sprachmodell (z.B. `corpus.txt`, Logdateien, temporäre Dateien).
+  - **server/corrections/**: Gespeicherte Korrekturtexte und (optional) zugehörige Audiodateien, die von Nutzern hochgeladen wurden.
+  - **server/lm/**: Fertig trainierte und komprimierte KenLM-Modelle (z.B. `4gram_de.klm`) für die Inferenz.
+  - **server/venv/**: (optional) Python-virtuelle Umgebung für das Backend.
+- **docs/**: Dokumentation, Workflows, Codebeispiele und Referenzen.
+- **kenlm/**: KenLM-Quellcode, Python-Bindings und Tools (`lmplz`, `build_binary` etc.) für das Training und die Nutzung von n-Gramm-Sprachmodellen.
+
 # speech3
 
 ## Setup (Entwicklungsumgebung)

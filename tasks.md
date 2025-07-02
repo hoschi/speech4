@@ -46,25 +46,29 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
     - [x] KenLM-Tools kompilieren (lmplz, build_binary etc.)
     - [x] Python-Bindings von KenLM im venv installieren
     - [x] README für Setup und Nutzung ergänzen
-    - [ ] **Datensammlung & Vorverarbeitung:**
+    - [x] **Datensammlung & Vorverarbeitung:**
         - Korrekturtexte aus Nutzereingaben sammeln
         - Vorverarbeitung (Sonderzeichen entfernen, Tokenisierung, ein Satz pro Zeile)
         - Alles in `corpus.txt` speichern
-    - [ ] **KenLM-Modell trainieren:**
+    - [x] **KenLM-Modell trainieren:**
         - n-Gramm-Modell (3- oder 4-Gramm, Kneser-Ney) mit lmplz bauen
         - Komprimieren mit build_binary
         - Modell nach `server/lm/` legen
-    - [ ] **Integration in pyctcdecode:**
+    - [x] **Integration in pyctcdecode:**
         - Modell im Backend laden und für Decoding nutzen
-    - [ ] **Kontinuierliche Aktualisierung:**
+    - [x] **Kontinuierliche Aktualisierung:**
         - Nach jedem Personalisierungs-Loop neue Korrekturen anhängen
         - KenLM-Modell neu bauen und bereitstellen
         - Hot-Reload oder Server-Neustart für neues Modell
-    - [ ] **Automatisierung:**
+    - [x] **Automatisierung:**
         - Trainings-Trigger automatisiert: Textdaten sammeln, Modell trainieren, bereitstellen
         - Status- und Fehler-Logging
-    - [ ] **Dokumentation & Referenzen:**
+    - [x] **Dokumentation & Referenzen:**
         - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
+
+# Discovered During Work
+- Die KenLM-Trainingspipeline läuft jetzt vollständig in Python, nutzt sys.executable und dynamische Pfade für lmplz/build_binary (venv-sicher).
+
 - [ ] **Real-Time Encoder State Revision:**
     - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
 - [x] .gitignore für Sprachmodelle und Binärdateien angepasst

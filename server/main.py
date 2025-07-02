@@ -1,4 +1,5 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 import uvicorn
 import torch
 import numpy as np
@@ -6,6 +7,10 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 import re
 from pyctcdecode import BeamSearchDecoderCTC
 import os
+import shutil
+import datetime
+import subprocess
+import sys
 
 app = FastAPI()
 
@@ -97,6 +102,73 @@ async def websocket_stream(websocket: WebSocket):
         print("WebSocket disconnected")
     except Exception as e:
         print(f"Error: {e}")
+
+@app.post("/upload/correction")
+async def upload_correction(text: str = Form(...), audio: UploadFile = File(None)):
+    """
+    Speichert Korrekturtext (und optional zugehörige Audiodatei) in server/corrections/.
+    """
+    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    base_path = f"server/corrections/{now}"
+    text_path = base_path + ".txt"
+    with open(text_path, "w", encoding="utf-8") as f:
+        f.write(text.strip() + "\n")
+    audio_path = None
+    if audio is not None:
+        audio_path = base_path + ".wav"
+        with open(audio_path, "wb") as f:
+            shutil.copyfileobj(audio.file, f)
+    return {"status": "ok", "text_file": text_path, "audio_file": audio_path}
+
+def train_kenlm_pipeline():
+    """
+    Führt die gesamte Pipeline aus: Vorverarbeitung, KenLM-Training, Modellbereitstellung.
+    """
+    LOG = "server/data/update_lm.log"
+    CORPUS = "server/data/corpus.txt"
+    ARPA = "server/data/corpus.arpa"
+    KENLM_BIN = "server/data/corpus.klm"
+    LM_TARGET = "server/lm/4gram_de.klm"
+
+    def run(cmd):
+        with open(LOG, "a", encoding="utf-8") as log:
+            log.write(f"\n[RUN] {' '.join(cmd)}\n")
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                log.write(result.stdout)
+                log.write(result.stderr)
+                return result.stdout
+            except subprocess.CalledProcessError as e:
+                log.write(e.stdout or '')
+                log.write(e.stderr or '')
+                raise RuntimeError(f"[ERROR] {' '.join(cmd)}: {e.stderr}")
+
+    # 1. Vorverarbeitung (immer venv-Python)
+    run([sys.executable, "server/preprocess_corrections.py"])
+    if not os.path.isfile(CORPUS):
+        raise RuntimeError(f"[ERROR] {CORPUS} nicht gefunden!")
+    # 2. KenLM-Training
+    lmplz_path = shutil.which("lmplz")
+    build_binary_path = shutil.which("build_binary")
+    if not lmplz_path or not build_binary_path:
+        raise RuntimeError("[ERROR] lmplz oder build_binary nicht im PATH gefunden! Ist KenLM korrekt installiert?")
+    run([lmplz_path, "-o", "4", "--text", CORPUS, "--arpa", ARPA])
+    # 3. Komprimieren
+    run([build_binary_path, ARPA, KENLM_BIN])
+    # 4. Modell verschieben
+    shutil.move(KENLM_BIN, LM_TARGET)
+    return f"[SUCCESS] KenLM-Modell bereit: {LM_TARGET}"
+
+@app.post("/train/lm")
+def train_lm():
+    """
+    Führt die KenLM-Trainingspipeline direkt im Python-Prozess aus.
+    """
+    try:
+        output = train_kenlm_pipeline()
+        return JSONResponse(content={"status": "success", "output": output})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
