@@ -232,8 +232,8 @@ def ensure_initial_kenlm():
     else:
         print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
 
-# Beim Serverstart initiales Modell sicherstellen (in Thread, um Startup nicht zu blockieren)
-threading.Thread(target=ensure_initial_kenlm, daemon=True).start()
+# Beim Serverstart initiales Modell sicherstellen (jetzt blockierend)
+ensure_initial_kenlm()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

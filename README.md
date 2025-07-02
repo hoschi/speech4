@@ -51,16 +51,7 @@ source server/venv/bin/activate
 pip install ./kenlm
 ```
 
-### 5. Sprachmodell (n-Gramm, z.B. 3gram_de.bin) bauen oder herunterladen
-- Siehe KenLM-Doku: https://github.com/kpu/kenlm
-- Beispiel für 3-Gramm-Modell:
-  ```bash
-  kenlm/build/bin/lmplz -o 3 < text_corpus.txt > 3gram_de.arpa
-  kenlm/build/bin/build_binary 3gram_de.arpa server/lm/3gram_de.bin
-  ```
-- Alternativ: Fertiges Modell herunterladen und nach `server/lm/` legen
-
-### 6. Server starten
+### 5. Server starten
 ```bash
 source server/venv/bin/activate
 python server/main.py
