@@ -1,39 +1,45 @@
-### Plan
+# PLANUNG.md
 
-#### Zweck
-Dieses Dokument beschreibt die übergeordnete Vision, die Systemarchitektur, technische Beschränkungen, den Stack und die eingesetzten Werkzeuge für das selbstlernende, personalisierte Transkriptionssystem.
+## 1. Zweck & Vision auf hoher Ebene
 
-#### Vision auf hoher Ebene
-Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger als 5 Minuten Nutzerdaten startklar ist, kontinuierlich aus Korrekturen lernt und Echtzeit-Transkription mit Code-Switching zwischen Deutsch und englischen Fachbegriffen ermöglicht.
+Entwicklung eines personalisierten, selbstlernenden Speech-to-Text-Systems, das in Echtzeit die deutsche Sprache (inklusive englischer Fachbegriffe) transkribiert. Das System soll aus Nutzerkorrekturen kontinuierlich lernen und eine höhere Genauigkeit als standardmäßige ASR-Dienste erreichen. Die gesamte Verarbeitung findet auf lokaler Hardware statt, um Datenschutz und Unabhängigkeit zu gewährleisten.
 
-#### Architektur
-- **Server:** MacBook Pro M1 (32 GB RAM, Apple Neural Engine)  
-- **Client:** React-Web-Frontend (Web-Audio API für Audio-Capture, Anzeige der Transkripte)  
-- **Kommunikation:** Bidirektionale WebSocket-Verbindung zum Streamen von 20 ms PCM-Chunks und Transkriptions-Chunks  
-- **Inferenz (Batch \& Streaming):**
-    - Basis-Akustikmodell: `wav2vec2-xls-r-1B-german` über PyTorch auf CPU/Neural Engine (kleiner 100 ms/Chunk)
-    - Streaming-optimiertes Modell: `wav2vec-S` für niedrige Latenz und konsistente Echtzeit-Qualität
-- **Batch-Training:** Python-Endpoint mit HuggingFace Transformers + PEFT (LoRA-Adapter + EWC)
+## 2. Architektur
 
-#### Beschränkungen
-- Keine NVIDIA-GPU verfügbar (nur CPU/Neural Engine)  
-- Echtzeit-Anforderung: kleiner 100 ms Latenz pro 20 ms Audio (Realtime-Factor kleiner 5×)  
-- Nur kostenlose, quelloffene Frameworks (HuggingFace, PEFT, PyTorch)  
+-   **Server:** Ein Python-Backend auf einem MacBook Pro (M1, 32 GB RAM), das ohne dedizierte NVIDIA-GPU auskommt. Es nutzt CPU-optimierte Open-Source-Software.
+-   **Client:** Ein schlankes React-Web-Frontend, dessen einzige Aufgaben die Audio-Erfassung, das Streaming an den Server und die Anzeige der zurückgelieferten Transkriptionen sind.
+-   **Kommunikation:** Eine bidirektionale WebSocket-Verbindung für das Echtzeit-Streaming von Audio-Chunks (Client → Server) und Transkriptions-Ergebnissen (Server → Client).
 
-#### Technischer Stack
-| Ebene               | Technologie                                    |
-|---------------------|------------------------------------------------|
-| Modellbasis         | wav2vec2-xls-r-1B-german                       |
-| Adapter-Feintuning  | LoRA (r=16, α=32, dropout=0.1)                 |
-| Forgetting-Schutz   | Elastic Weight Consolidation (EWC)             |
-| Streaming-Server    | Python + WebSocket (uvicorn, websockets)       |
-| Client-Frontend     | React, Web-Audio API                           |
-| Batch-Training      | HuggingFace Transformers + PEFT + PyTorch      |
+## 3. Phasen der Implementierung
 
-#### Werkzeuge
-- Python 3.10, venv benutzen
-- PyTorch  
-- HuggingFace Transformers & PEFT  
-- FastAPI für Endpoints  
-- React, TypeScript, Vite
-- Web-Audio API  
+-   **Phase 1 (Abgeschlossen):** Aufbau einer stabilen Echtzeit-Streaming-Pipeline mit VOSK als ASR-Engine.
+-   **Phase 2 (Abgeschlossen):** Implementierung des Korrektur-Loops. Das System kann Korrekturpaare (Audio + Text) speichern und daraus ein benutzerdefiniertes Vokabular für VOSK erstellen.
+-   **Phase 3 (Nächste Schritte):** Verbesserung der Personalisierungslogik durch ein vollwertiges N-Gramm-Sprachmodell (KenLM) und optionales LLM-Post-Processing.
+
+## 4. Technischer Stack
+
+| Ebene | Technologie | Begründung |
+| :--- | :--- | :--- |
+| **Backend** | Python 3.10+, FastAPI, Uvicorn | Modern, performant, ideal für WebSockets und REST-APIs. |
+| **ASR-Engine** | VOSK | Beste Wahl für kostenlose, CPU-basierte Echtzeit-Streaming-ASR auf macOS mit Vokabular-Unterstützung. |
+| **Sprachmodell** | *Initial:* Benutzerdefiniertes Vokabular. *Final:* KenLM N-Gramm-Modell. | KenLM ist der logische nächste Schritt für eine tiefere Sprachkontext-Integration. |
+| **Frontend** | React, TypeScript, Vite | Moderner, schneller und typsicherer Stack für Web-UIs. |
+| **Kommunikation** | WebSocket API (browser-nativ) | Standard für latenzarme, bidirektionale Kommunikation. |
+| **Audio-Erfassung**| Web Audio API (`MediaRecorder`) | Standard im Browser für den Zugriff auf das Mikrofon. |
+
+## 5. Beschränkungen
+
+-   **Hardware:** Kein Einsatz von NVIDIA-GPUs. Die Lösung muss auf einem Apple M1 Chip CPU-optimiert laufen.
+-   **Software:** Es darf ausschließlich kostenlose Open-Source-Software ohne laufende Kosten verwendet werden.
+-   **Performance:** Das System muss eine Echtzeit-Verarbeitung mit einer Latenz von < 300ms pro Audio-Chunk ermöglichen (realistisch für VOSK).
+
+## 6. Werkzeuge
+
+-   **Versionskontrolle:** Git
+-   **Paketmanager:** `pip` für Python, `npm` für Node.js
+
+---
+
+**Aufforderung an die KI:**
+
+Verwenden Sie die Struktur und die Entscheidungen, die in plan.md skizziert sind. Beziehen Sie sich zu Beginn jeder neuen Konversation auf dieses Dokument, um den Kontext und die Projektziele sicherzustellen."

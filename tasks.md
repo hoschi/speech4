@@ -1,192 +1,74 @@
 # Tasks
+# Tasks
 
-Dieses Dokument ist nach **Feature-Gruppen** gegliedert. Zu jedem Feature finden sich unter Überschriften je eine Liste mit Aufgaben für **Server** und **Client**.
+## Aktive Arbeiten
 
-Unter `./other-repos/ovos-stt-plugin-vosk` findest du ein Beispielprojekt das folgende Features enthält die dir helfen könnten bei der Implementierung:
+- Fokus liegt aktuell auf **Meilenstein 3: Die echte Personalisierung**. Nachdem die Basis-Pipeline steht und Korrekturen gesammelt werden können, implementieren wir nun das Training und die Nutzung eines vollwertigen KenLM-Sprachmodells.
 
-* **Streaming-ASR** via Vosk API: niedrige Latenz (kleiner 100 ms), CTC/WFST, CPU-optimiert.
-* **Code-Switching**: Deutsche Modelle mit englischen Termini.
-* **Adapter-Feintuning**: Nutzt Kaldi-Adapter, lässt sich in Personalisierungs-Pipeline einbinden.
+---
 
-## Feature: Basis-Streaming-Inferenz
+## Meilensteine & Detaillierte Aufgaben
 
-*Um eine funktionierende Echtzeit-Transkription zu ermöglichen, implementiere im Server die Streaming-Pipeline und im Client die Audio-Erfassung und Anzeige.*
+### ✅ Meilenstein 1: Das Fundament (Abgeschlossen)
 
-### Server
+*Ziel war es, eine stabile ASR-Basis zu schaffen, die live transkribiert. Dies ist nun funktional.*
 
-- [x] Python-Projekt initialisieren mit venv und FastAPI
-- [x] Abhängigkeiten installieren (PyTorch, Transformers, PEFT, uvicorn, websockets)
-- [x] WebSocket-Endpunkt `/ws/stream` einrichten
-- [x] Eingehende 20 ms PCM-Chunks empfangen und in Tensoren umwandeln
-- [x] Modell `facebook/wav2vec2-large-xlsr-53-german` auf CPU/Neural Engine laden
-- [x] Inferenz-Pipeline (Forward-Pass → Logits → CTC-Decoding) implementieren
-- [x] Transkripte als Chunks über WebSocket zurücksenden
+-   **Server-Aufgaben:**
+    -   [x] Python-Projekt mit FastAPI initialisiert.
+    -   [x] VOSK-Bibliothek und deutsches Modell installiert.
+    -   [x] WebSocket-Endpunkt (`/ws/stream`) implementiert.
+    -   [x] VOSK-Recognizer-Instanz pro Verbindung erstellt.
+    -   [x] Audio-Chunks an den Recognizer weitergeleitet.
+    -   [x] Partielle und finale Ergebnisse an den Client gesendet.
+-   **Client-Aufgaben (React):**
+    -   [x] React-Projekt aufgesetzt.
+    -   [x] UI mit "Start/Stop"-Button und Textfeld erstellt.
+    -   [x] Mikrofonzugriff und Audio-Streaming via `MediaRecorder` und WebSocket implementiert.
+    -   [x] Empfangene Transkriptionen in der UI angezeigt.
 
+### ✅ Meilenstein 2: Der Basis-Korrektur-Loop (Abgeschlossen)
 
-### Client
+*Ziel war es, Korrekturen zu sammeln und das Vokabular der ASR-Engine zu erweitern. Das System speichert nun Daten und erstellt eine Wortliste.*
 
-Unter `./other-repos/leon` findest du ein Beispielprojekt das dir helfen kann bei der Audio verarbeitung und anzeige des transkripts. Wichtig ist aber das ich das in einem eingabe feld haben möchte damit ich es später editieren kann
+-   **Server-Aufgaben:**
+    -   [x] REST-Endpunkt `POST /upload/correction` erstellt, der Audio und Text speichert.
+    -   [x] `preprocess_corrections.py` erstellt, um ein `corpus.txt` aus den Korrekturen zu generieren.
+    -   [x] REST-Endpunkt `POST /train/lm` implementiert, der das Preprocessing anstößt.
+    -   [x] VOSK-Recognizer wird beim Start mit einem benutzerdefinierten Vokabular (Wortliste) aus dem `corpus.txt` initialisiert.
+-   **Client-Aufgaben (React):**
+    -   [x] UI um ein editierbares Textfeld und einen Upload-Button erweitert.
+    -   [x] Logik implementiert, um Audio-Blob und korrigierten Text an den Server zu senden.
 
-- [x] React-Projekt initialisieren mit Vite und TypeScript
-- [x] Mikrofonzugriff via Web-Audio API anfordern
-- [x] 20 ms Audio-Chunks erfassen und als PCM-Buffer serialisieren
-- [x] WebSocket-Verbindung zu `/ws/stream` aufbauen
-- [x] Gesammelte Audio-Chunks in Echtzeit senden
-- [x] Eingehende Transkriptions-Chunks anzeigen (Streaming-Update)
-- [x] Fehler-Handling bei Verbindungsabbrüchen implementieren
+### 📋 Meilenstein 3: Die echte Personalisierung mit KenLM (Nächste Iteration)
 
-## Feature: Verbesserte ASR-Qualität durch gezielte Backend-Maßnahmen
+*Ziel: Von einer einfachen Wortliste zu einem mächtigen N-Gramm-Sprachmodell wechseln, um den Kontext und die Satzstruktur zu lernen. Dies wird die Genauigkeit signifikant verbessern.*
 
-Alle Details zur Verbesserung der Ist-Situation nach dem letzten Feature: https://www.perplexity.ai/search/bitte-recherchiere-und-fasse-z-Yeh3BqyJQhagazWxD1bKoQ
+-   **Server-Aufgaben:**
+    -   [x] **KenLM-Setup:**
+        -   [x] KenLM von GitHub klonen und gemäß der Anleitung für macOS kompilieren.
+        -   [x] Einen großen deutschen Basiskorpus (z.B. OSCAR-2301) herunterladen und als `german_base_corpus.txt` bereitstellen.
+    -   [ ] **Trainings-Pipeline erweitern:**
+        -   [ ] Das `train/lm`-Skript so anpassen, dass es die Nutzer-Korrekturen mit dem großen Basiskorpus zusammenführt.
+        -   [ ] Das Skript soll die KenLM-Kommandozeilen-Tools (`lmplz` und `build_binary`) aufrufen, um ein `.arpa`- und dann ein `.klm`-Modell zu trainieren.
+    -   [ ] **Integration in VOSK:**
+        -   [ ] VOSK ist nicht ideal für die tiefe Integration von benutzerdefinierten `.klm`-Modellen. Wir ersetzen den VOSK-Recognizer durch `pyctcdecode`, das speziell für die Fusion mit KenLM-Modellen entwickelt wurde.
+        -   [ ] Dazu muss das akustische Modell ausgetauscht werden. Wir verwenden `facebook/wav2vec2-large-xlsr-53-german` als neues Basismodell, da es mit `pyctcdecode` kompatibel ist.
+        -   [ ] Die WebSocket-Logik anpassen, um die Chunks an das Wav2Vec2-Modell zu senden und die `logits` dann mit dem `pyctcdecode`-Decoder und unserem KenLM-Modell zu verarbeiten.
 
-Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutlich verbessert
+### 📋 Meilenstein 4: Optimierung (Zukünftige Iteration)
 
-### 1. Wortverschmelzungen und falsche Trennungen
-- [ ] **Shallow Fusion mit KenLM (pyctcdecode):**
-    - [x] KenLM-Tools kompilieren (lmplz, build_binary etc.)
-    - [x] Python-Bindings von KenLM im venv installieren
-    - [x] README für Setup und Nutzung ergänzen
-    - [x] **Datensammlung & Vorverarbeitung:**
-        - Korrekturtexte aus Nutzereingaben sammeln
-        - Vorverarbeitung (Sonderzeichen entfernen, Tokenisierung, ein Satz pro Zeile)
-        - Alles in `corpus.txt` speichern
-    - [x] **KenLM-Modell trainieren:**
-        - n-Gramm-Modell (3- oder 4-Gramm, Kneser-Ney) mit lmplz bauen
-        - Komprimieren mit build_binary
-        - Modell nach `server/lm/` legen
-    - [x] **Integration in pyctcdecode:**
-        - Modell im Backend laden und für Decoding nutzen
-    - [x] **Kontinuierliche Aktualisierung:**
-        - Nach jedem Personalisierungs-Loop neue Korrekturen anhängen
-        - KenLM-Modell neu bauen und bereitstellen
-        - Hot-Reload oder Server-Neustart für neues Modell
-    - [x] **Automatisierung:**
-        - Trainings-Trigger automatisiert: Textdaten sammeln, Modell trainieren, bereitstellen
-        - Status- und Fehler-Logging
-    - [x] **Dokumentation & Referenzen:**
-        - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
-    - [x] Modellerstellung muss Hauptthread blockieren, ohne Modell macht es keinen Sinn das System zu benutzen: `threading.Thread(target=ensure_initial_kenlm, daemon=True).start()`
+*Ziel: Die Qualität, Lesbarkeit und Automatisierung weiter verbessern.*
 
-# Discovered During Work
-- Die KenLM-Trainingspipeline läuft jetzt vollständig in Python, nutzt sys.executable und dynamische Pfade für lmplz/build_binary (venv-sicher).
+-   [ ] **LLM-Post-Processing:** Einen optionalen Schritt nach der Transkription einfügen, der die Ausgabe an ein lokales LLM zur Korrektur von Grammatik und Interpunktion sendet.
+-   [ ] **Automatisierung:** Das KenLM-Training automatisch (z.B. nächtlich per `cron`) ausführen lassen.
+-   [ ] **Hyperparameter-Tuning:** Ein Skript (`tune_decoder.py`) erstellen, um die `alpha`- und `beta`-Werte für `pyctcdecode` optimal auf einem Validierungsset (z.B. Common Voice) abzustimmen.
 
-- [ ] **Real-Time Encoder State Revision:**
-    - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
-- [x] .gitignore für Sprachmodelle und Binärdateien angepasst
-- [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
-- [ ] Modell `wav2vec2-xls-r-1B-german` verwenden statt facebook/wav2vec2-large-xlsr-53-german
-- [ ] Integration von `wav2vec-S` für optimierte Streaming-Inferenz
+---
 
-### 3. Genauere Wortgrenzen und Alignment
-- [ ] **Forced Alignment auf CTC-Logits:**
-    - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`)
+**Aufforderung an die KI:**
+Aktualisieren Sie task.md, um [Aufgabenname] als erledigt zu markieren und [Aufgabenname] als neue Aufgabe hinzuzufügen.
 
-### 4. Kontinuierliche Personalisierung
-- [ ] **Adapter-Feintuning per LoRA + EWC:**
-    - Nutzer-Korrekturen werden für LoRA-Feintuning (r=16, α=32, EWC) genutzt und als Adapter deployed
-    - Automatisierter Trainings-Endpoint nach jeder Session
-- [ ] **Hotword-Boosting:**
-    - Boost-Words/Fachbegriffe mit erhöhtem Score via pyctcdecode
-
-### 5. LLM-gestütztes Rescoring
-- [ ] **Zweite Pass-Rescoring mit Transformer-LM:**
-    - Nach erster CTC-Hypothese: N-Best-Liste, Bewertung durch LLM (z. B. GPT-4) mit Cross-Attention für komplexe Begriffe
-
-## Feature: Personalisierungs-Loop
-
-*Um kontinuierliches Lernen zu ermöglichen, setze Server-Endpunkte für Corrections und Training und Client-UI für Korrekturen um.*
-
-Erweiterte Dokumentation zu diesem Task ist in `docs/ecw.md`
-
-### Server
-
-- [ ] POST-Endpoint `/upload/corrections` für `(audio_chunk, korrigierter_text)` implementieren
-- [ ] Speicherstruktur anlegen: `/corrections` das Dateipaare enthält wie `2025-06-18 15:46.txt` und `2025-06-18 15:46.wav` für Audio und korrigiertem Text
-- [ ] Trainings-Trigger realisieren via HTTP-Endpoint `/train/ewc`
-- [ ] **Fisher-Information berechnen**  
-  - Funktion `get_fisher_diag(model, dataloader)`  
-- [ ] **EWCTrainer-Klasse erweitern**  
-  - Überschreiben von `compute_loss` mit EWC-Term  
-- [ ] **Feintuning-Task**  
-  - Skript `run_ewc_training()` für:  
-    - Laden des Basismodells  
-    - Erzeugen der Datasets A und B  
-    - Berechnung von Fisher & alten Parametern  
-    - Training mit konfigurierbarem `ewc_lambda`  
-    - Speichern und Versionieren des Modells unter `/models/`, logging welche Datensätze in das neue Modell geflossen sind
-    - neues Modell laden, hot swapping nicht nötig, downtime ist kein Problem
-- [ ] Logging für Performance-Messungen (Latenz, Trainingszeit)
-- [ ] mit streamlit unter `/monitoring` ein Monitoring etablieren
-    - [ ] welche Traningsdaten noch nicht verarbeitet wurden
-    - [ ] Übersicht über die letzten 5 Modelle und wie viele Traningsdaten in das Modell geflossen sind bei dessen Training
-    - [ ] letzten 200 Zeilen aus Performance Logging
-
-
-### Client
-
-- [ ] UI-Komponente zur Bearbeitung transkribierter Zeilen hinzufügen
-    - [ ] für jede Aufnahme wird der transkribierte Text in einem einfachen input feld dargestellt das bearbeitet werden kann, sobald die Aufnahme vom Benutzer beendet wird
-    - [ ] einen "upload" Button um die daten an `/corrections` zu übertragen
-    - [ ] nach einem upload kann dieser nicht nochmal getriggert werden, außer es ist ein Fehler aufgetreten beim upload. Auch der Text kann nicht mehr editiert werden
-    - [ ] loading spinner für Upload bis er fertig ist mit Fehlerbehandlung
-- [ ] Automatisches Neuladen des neuen Modells nach Training
-
-
-## Feature: Code-Switching \& Vokabular-Biasing
-
-*Um Fachbegriffe korrekt zu behandeln, implementiere Biasing im Server-Decoder und entsprechende Einstellungen im Client.*
-
-Unter `./other-repos/ASR-Adaptation` findest du ein Beispielprojekt das dir hier helfen kann
-
-### Server
-
-- [ ] Mechanismus zur Prompt-Injection für Vokabular-Biasing umsetzen durch statisches `vocab_bias.json` die vom Client aus geändert werden kann
-- [ ] Decoder anpassen, um Bias-Wahrscheinlichkeiten bei der CTC-Dekodierung zu priorisieren
-- [ ] Optional: Rescoring-Endpoint `/rescore` zur LLM-gestützten Priorisierung (z. B. GPT-API)
-
-
-### Client
-
-- [ ] Settings-Tab
-    - [ ] Eingabefeld zum Hinzufügen eigener Fachbegriffe zu `vocab_bias.json`
-    - [ ] Button um Neustart des Servers der die neuen Begriffe einbetten muss, loading spinner bis Server fertig ist
-- [ ] Anzeige der aktiven Bias-Begriffe und Möglichkeit zum Entfernen
-- [ ] Option zum temporären Deaktivieren des Biasing
-
-
-## Feature: Erweiterungen \& Optimierungen
-
-*Um Systemstabilität und -performance zu steigern, integriere Augmentation, CI/CD, Monitoring und UI-Optimierungen.*
-
-### Server
-
-- [ ] Synthetic Data Augmentation via VALL-E X integrieren (API und Lizenz prüfen)
-- [ ] Alternative Streaming-Server evaluieren (VOSK, ESPnet-Conformer, Kaldi-Serve)
-- [ ] CI/CD-Pipeline für Builds, Tests und Deployments einrichten (Docker, GitHub Actions)
-
-
-## Feature: Improvements
-
-- [ ] Audioaufnahme im Client von ScriptProcessorNode auf AudioWorkletNode umstellen (Web Audio API Best Practice)
-- [ ] **KenLM auf ARPA-Format umstellen:**
-    - Lade und verwende das KenLM-Modell direkt im ARPA-Textformat statt als .klm-Binary.
-    - Vorteil: pyctcdecode kann Unigramme korrekt extrahieren, keine Warnungen mehr, bessere Decoding-Qualität.
-    - Nachteil: ARPA-Datei ist größer, Laden minimal langsamer (nur beim Start relevant).
-    - Umbau ist einfach: build_binary-Schritt weglassen, stattdessen .arpa-Datei verschieben und als Modellpfad verwenden.
-    - Umsetzung erst, wenn alle anderen Features stabil laufen.
-
-
-### Interpunktion und Großschreibung verbesssern
-
-Wird aktuell von LLM über Olama gefixed.
-
-- [ ] **Online-Punctuation-Module:**
-    - Leichtgewichtiges ELECTRA-basiertes Modell (z. B. angepasstes `dslim/bert-base-NER`) für inkrementelle Satzzeichen nach CTC
-- [ ] **Truecasing-Adapter:**
-    - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven
-
-**Regeln für die Coding-KI:**
-
-- Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
-- Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.
+**Globale Regeln für die KI:**
+-   Markiere eine Aufgabe automatisch als erledigt, wenn die Implementierung und die zugehörigen Tests erfolgreich abgeschlossen wurden.
+-   Erstelle automatisch neue Unteraufgaben, wenn sich Blocker oder notwendige Zwischenschritte ergeben.
 
