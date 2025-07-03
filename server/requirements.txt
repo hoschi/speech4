@@ -7,3 +7,6 @@ peft
 pyctcdecode
 kenlm
 python-multipart 
+datasets
+soundfile
+jiwer 

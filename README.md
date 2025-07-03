@@ -110,6 +110,31 @@ python scripts/extract_oscar_german.py
 - Die Datei `german_base_corpus.txt` kann als Ausgangspunkt für das initiale KenLM-Training verwendet werden, bis genügend echte Korrekturen gesammelt wurden.
 - Für produktive Nutzung: Korpus regelmäßig mit echten Nutzerdaten/Korrekturen ergänzen!
 
+## Hyperparameter-Tuning für Decoder (Common Voice DE)
+
+Mit dem Skript `server/tune_decoder.py` kannst du die optimalen KenLM-Decoder-Parameter (alpha, beta) für das deutsche wav2vec2-Modell auf Basis von Mozilla Common Voice (DE) bestimmen.
+
+### Voraussetzungen
+- Python venv ist aktiviert (`source server/venv/bin/activate`)
+- Alle Abhängigkeiten sind installiert (`pip install -r server/requirements.txt`)
+- KenLM-Modell liegt vor (z.B. `server/lm/4gram_de.klm`)
+
+### Ausführung
+
+```bash
+source server/venv/bin/activate
+python server/tune_decoder.py
+```
+
+Das Skript lädt automatisch 200 zufällige Testbeispiele aus Common Voice (DE), führt eine Grid Search über die Parameter alpha und beta durch und gibt die optimalen Werte sowie die beste WER (Word Error Rate) aus.
+
+**Hinweis:**
+- Das Skript lädt das Modell `facebook/wav2vec2-large-xlsr-53-german` und verwendet das KenLM-Modell aus `server/lm/4gram_de.klm`.
+- Die Berechnung kann je nach Hardware einige Minuten dauern.
+- Die Ergebnisse werden im Terminal ausgegeben.
+
+Weitere Details siehe `docs/Hyperparameter-Tuning-Anleitung.md`.
+
 ---
 
 Für weitere Fragen siehe `tasks.md` oder melde dich beim Maintainer. 
