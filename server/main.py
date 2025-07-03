@@ -72,44 +72,56 @@ OVERLAP = STRIDE * 2
 @app.websocket("/ws/stream")
 async def websocket_stream(websocket: WebSocket):
     await websocket.accept()
-
+    
     # Erstelle einen VOSK-Recognizer mit dem optionalen Vokabular
     vocabulary = app.state.custom_vocabulary
+    recognizer = KaldiRecognizer(vosk_model, 16000, json.dumps(vocabulary, ensure_ascii=False)) if vocabulary else KaldiRecognizer(vosk_model, 16000)
+    
     if vocabulary:
-        recognizer = KaldiRecognizer(vosk_model, 16000, json.dumps(vocabulary, ensure_ascii=False))
         print("[INFO] VOSK Recognizer mit benutzerdefiniertem Vokabular initialisiert.")
     else:
-        recognizer = KaldiRecognizer(vosk_model, 16000)
         print("[INFO] VOSK Recognizer ohne benutzerdefiniertes Vokabular initialisiert.")
 
     try:
         while True:
-            try:
-                data = await websocket.receive()
-                print(f"[WS] Empfangen: type={data.get('type')}")
-            except RuntimeError as e:
-                break
-            if data.get('bytes'):
-                # Audio-Daten verarbeiten
-                if recognizer.AcceptWaveform(data['bytes']):
-                    result = json.loads(recognizer.Result())
-                    await websocket.send_text(json.dumps(result))
+            # Empfange die nächste Nachricht vom Client
+            message = await websocket.receive()
+            
+            # Prüfe, ob es sich um Binärdaten (Audio) handelt
+            if "bytes" in message and message["bytes"]:
+                audio_data = message["bytes"]
+                if recognizer.AcceptWaveform(audio_data):
+                    # Finale Hypothese nach einer Pause
+                    result_json = recognizer.Result()
+                    await websocket.send_text(result_json)
                 else:
-                    result = json.loads(recognizer.PartialResult())
-                    await websocket.send_text(json.dumps(result))
-            if data.get('text'):
-                if json.loads(data['text']).get('eof'):
-                    final_result = json.loads(recognizer.FinalResult())
-                    await websocket.send_text(json.dumps(final_result))
-                    break
+                    # Partielle Hypothese während des Sprechens
+                    partial_result_json = recognizer.PartialResult()
+                    await websocket.send_text(partial_result_json)
+            
+            # Prüfe, ob es sich um eine Textnachricht handelt (für Steuersignale)
+            elif "text" in message:
+                try:
+                    data = json.loads(message["text"])
+                    # EOF-Signal vom Client, um die Transkription abzuschließen
+                    if data.get('eof') == 1:
+                        final_result_json = recognizer.FinalResult()
+                        await websocket.send_text(final_result_json)
+                        # Beende die Schleife, nachdem das Endergebnis gesendet wurde
+                        break 
+                except json.JSONDecodeError:
+                    # Ignoriere Textnachrichten, die kein valides JSON sind
+                    print(f"[WARN] Ungültige Textnachricht vom Client empfangen: {message['text']}")
+                    pass
+
     except WebSocketDisconnect:
-        print("WebSocket disconnected")
+        print("[INFO] WebSocket disconnected.")
     except Exception as e:
-        print(f"[ERROR] WebSocket: {e}")
-        await websocket.send_json({
-            "type": "error",
-            "message": str(e)
-        })
+        print(f"[ERROR] Ein unerwarteter Fehler ist aufgetreten: {e}")
+        # Optional: Sende eine Fehlermeldung an den Client
+        await websocket.send_text(json.dumps({'type': 'error', 'message': str(e)}))
+    finally:
+        print("[INFO] Schließe WebSocket-Verbindung.")
 
 @app.post("/upload/correction")
 async def upload_correction(text: str = Form(...), audio: UploadFile = File(...)):
