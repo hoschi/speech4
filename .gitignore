@@ -10,3 +10,4 @@ server/lm/
 german_base_corpus.txt
 server/data/
 server/data/
+server/models/

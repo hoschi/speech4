@@ -51,7 +51,24 @@ source server/venv/bin/activate
 pip install ./kenlm
 ```
 
-### 5. Server starten
+### 5. Vosk
+
+```
+# Navigiere in den Server-Ordner
+cd server
+# Erstelle den models-Ordner
+mkdir -p models
+# Lade das Modell herunter
+wget https://alphacephei.com/vosk/models/vosk-model-de-0.21.zip
+# Entpacke es
+unzip vosk-model-de-0.21.zip -d models/
+# Lösche die ZIP-Datei
+rm vosk-model-de-0.21.zip
+# Gehe zurück ins Hauptverzeichnis
+cd ..
+```
+
+### 6. Server starten
 ```bash
 source server/venv/bin/activate
 python server/main.py
