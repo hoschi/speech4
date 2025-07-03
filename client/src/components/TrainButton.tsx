@@ -10,7 +10,7 @@ const TrainButton: React.FC = () => {
     setTrainResult(null);
     setTrainError(null);
     try {
-      const res = await fetch('http://localhost:8000/train/lm', { method: 'POST' });
+      const res = await fetch('/train/lm', { method: 'POST' });
       const data = await res.json();
       if (data.status === 'success') {
         setTrainResult(data.output);
