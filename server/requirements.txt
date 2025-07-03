@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 websockets
+vosk
 torch
 transformers
 peft

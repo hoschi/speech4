@@ -16,8 +16,6 @@ const ErrorChunk = z.object({
   message: z.string(),
 });
 
-const MessageSchema = z.discriminatedUnion('type', [HypothesisChunk, FinalChunk, ErrorChunk]);
-
 type HypothesisChunk = z.infer<typeof HypothesisChunk>;
 type FinalChunk = z.infer<typeof FinalChunk>;
 type ErrorChunk = z.infer<typeof ErrorChunk>;
@@ -26,105 +24,123 @@ export type TranscriptMessage = HypothesisChunk | FinalChunk | ErrorChunk;
 type AudioRecorderProps = {
   onTranscriptChunk: (chunk: TranscriptMessage) => void;
   onRecordingChange?: (rec: boolean) => void;
+  onRecordingComplete?: (blob: Blob) => void;
   onFinal?: () => void;
 };
 
 const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
-  const { onTranscriptChunk, onRecordingChange } = props;
+  const { onTranscriptChunk, onRecordingChange, onRecordingComplete } = props;
   const wsRef = useRef<WebSocket | null>(null);
   const [recording, setRecording] = useState(false);
   const [wsStatus, setWsStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const BUFFER_SIZE = 16000; // 1 Sekunde @ 16kHz
-  const sampleBufferRef = useRef<Int16Array>(new Int16Array(0));
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Cleanup-Methode für App
   useImperativeHandle(ref, () => ({
     cleanup: () => {
       processorRef.current?.disconnect();
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
+        audioContextRef.current.close().catch(console.error);
       }
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
       wsRef.current?.close();
-      sampleBufferRef.current = new Int16Array(0);
+      audioChunksRef.current = [];
     }
   }));
 
   const startRecording = async () => {
     if (recording) return;
+    audioChunksRef.current = []; // Reset chunks
     setWsStatus('connecting');
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaStreamRef.current = stream;
-    audioContextRef.current = new window.AudioContext({ sampleRate: 16000 });
-    const source = audioContextRef.current.createMediaStreamSource(stream);
-    const processor = audioContextRef.current.createScriptProcessor(1024, 1, 1); // 64ms @ 16kHz = 1024 samples
-    processor.onaudioprocess = (e) => {
-      const input = e.inputBuffer.getChannelData(0);
-      // PCM 16bit Little Endian
-      const pcm = new Int16Array(input.length);
-      for (let i = 0; i < input.length; i++) {
-        pcm[i] = Math.max(-1, Math.min(1, input[i])) * 32767;
-      }
-      // Buffering: sammle PCM bis mindestens 5120 Samples erreicht sind
-      const prev = sampleBufferRef.current;
-      const combined = new Int16Array(prev.length + pcm.length);
-      combined.set(prev, 0);
-      combined.set(pcm, prev.length);
-      let offset = 0;
-      while (combined.length - offset >= BUFFER_SIZE) {
-        const chunk = combined.slice(offset, offset + BUFFER_SIZE);
-        wsRef.current?.send(chunk.buffer);
-        offset += BUFFER_SIZE;
-      }
-      // Rest im Buffer behalten
-      sampleBufferRef.current = combined.slice(offset);
-    };
-    source.connect(processor);
-    processor.connect(audioContextRef.current.destination);
-    processorRef.current = processor;
+
     // WebSocket verbinden
     wsRef.current = new WebSocket('ws://localhost:8000/ws/stream');
+    wsRef.current.binaryType = 'arraybuffer';
     wsRef.current.onopen = () => setWsStatus('connected');
-    wsRef.current.onclose = () => {
-      setWsStatus('disconnected');
-    };
-    wsRef.current.onerror = () => {
-      setWsStatus('error');
-    };
+    wsRef.current.onclose = () => setWsStatus('disconnected');
+    wsRef.current.onerror = () => setWsStatus('error');
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        const parsed = MessageSchema.safeParse(data);
-        if (parsed.success) {
-          onTranscriptChunk(parsed.data);
+        // VOSK gibt 'partial' oder 'text' zurück
+        const isFinal = 'text' in data;
+        const text = isFinal ? data.text : data.partial;
+
+        if (text && text.trim()) {
+            if (isFinal) {
+                onTranscriptChunk({ type: 'final', text });
+                // Stoppt die Aufnahme serverseitig ausgelöst
+                stopRecording(true);
+            } else {
+                onTranscriptChunk({
+                    type: 'hypothesis',
+                    start: 0, // VOSK liefert keine verlässlichen Timestamps per default
+                    end: 0,
+                    text: text,
+                });
+            }
         }
-      } catch {
-        // Fallback: ignoriere untypisierte Nachrichten
+
+      } catch (e) {
+        console.error("Fehler beim Parsen der WebSocket-Nachricht:", e);
       }
     };
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStreamRef.current = stream;
+
+    mediaRecorderRef.current = new MediaRecorder(stream);
+    mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(event.data);
+        }
+    };
+
+    mediaRecorderRef.current.start(250); // Send data every 250ms
+
     setRecording(true);
     if (typeof onRecordingChange === 'function') onRecordingChange(true);
   };
 
-  const stopRecording = () => {
+  const stopRecording = (fromServer: boolean = false) => {
     console.log("stopRecording")
-    // Sende "final"-Nachricht an den Server
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket is not open when trying to send final message!');
+    if (!recording && !fromServer) return;
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop();
     }
-    wsRef.current.send(JSON.stringify({ text: "final" }));
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Sage dem Server, dass die Aufnahme beendet ist, damit er das Endergebnis schickt
+        wsRef.current.send(JSON.stringify({ 'eof': 1 }));
+    }
+
+    // Erstelle den finalen Audio-Blob
+    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+    if (onRecordingComplete) {
+        onRecordingComplete(audioBlob);
+    }
+
+    // Ressourcen freigeben
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+
     setRecording(false);
-    if (typeof onRecordingChange === 'function') onRecordingChange(false);
-    // Ressourcen werden erst nach Empfang von "final" abgebaut!
+    if (typeof onRecordingChange === 'function' && !fromServer) {
+        onRecordingChange(false);
+    }
+
+    // WebSocket wird nach finaler Nachricht vom Server geschlossen
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', margin: '1.5rem 0' }}>
       <button
-        onClick={recording ? stopRecording : startRecording}
+        onClick={recording ? () => stopRecording(false) : startRecording}
         className={`button-main${recording ? ' stop' : ''}`}
       >
         {recording ? 'Stop Recording' : 'Start Recording'}

@@ -9,6 +9,7 @@ function App() {
   const [hypotheses, setHypotheses] = useState<TranscriptMessage[]>([])
   const [userTranscript, setUserTranscript] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false)
   const audioRecorderRef = useRef<{ cleanup: () => void } | null>(null)
 
@@ -17,6 +18,7 @@ function App() {
     setIsRecording(rec)
     if (rec) {
       setUserTranscript('') // Editor leeren, wenn neue Aufnahme startet
+      setAudioBlob(null);
       setHypotheses([])
     }
   }
@@ -40,6 +42,11 @@ function App() {
     }
   }
 
+  const handleRecordingComplete = (blob: Blob) => {
+    console.log(`Audio-Blob empfangen, Größe: ${blob.size} bytes`);
+    setAudioBlob(blob);
+  };
+
   // Laufendes Transkript aus Hypothesen zusammensetzen
   const liveTranscript = hypotheses
     .filter((h): h is { type: 'hypothesis', start: number, end: number, text: string } => h.type === 'hypothesis')
@@ -53,12 +60,18 @@ function App() {
   return (
     <div className="app-card">
       <h1>Speech-to-Text Streaming Demo</h1>
-      <AudioRecorder ref={audioRecorderRef} onTranscriptChunk={handleTranscriptChunk} onRecordingChange={handleRecordingChange} />
+      <AudioRecorder
+        ref={audioRecorderRef as React.RefObject<{ cleanup: () => void } | null>}
+        onTranscriptChunk={handleTranscriptChunk}
+        onRecordingChange={handleRecordingChange}
+        onRecordingComplete={handleRecordingComplete}
+      />
       {error && <div style={{ color: 'red', margin: '1rem 0' }}>Fehler: {error}</div>}
       <TranscriptEditor
         transcript={isRecording ? liveTranscript : userTranscript}
-        setTranscript={isRecording ? () => {} : setUserTranscript}
+        onTranscriptChange={isRecording ? () => {} : setUserTranscript}
         disabled={isRecording}
+        audioBlob={audioBlob}
       />
       <TrainButton />
     </div>
