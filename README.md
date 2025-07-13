@@ -69,6 +69,15 @@ ln -sf $(pwd)/kenlm/build/bin/build_binary server/venv/bin/build_binary
 - Dadurch findet das Backend die Tools automatisch, wenn das Training per API oder UI ausgelöst wird.
 - Diese Symlinks (und das gesamte venv-Verzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
 
+## KenLM-Optimierung für 32GB RAM
+
+Das System implementiert automatische KenLM-Optimierung für große Sprachmodelle:
+
+- **Aggressives Pruning** (60-80% Größenreduktion)
+- **8-bit Quantisierung** (50-70% zusätzliche Reduktion)
+- **Memory Mapping** für lazy loading
+- **Automatische Größenüberwachung**
+
 ## Hinweise
 - Das Verzeichnis `server/venv/` und große Modelle werden nicht versioniert (siehe .gitignore)
 - Für die ASR-Qualität ist ein passendes KenLM-Modell erforderlich

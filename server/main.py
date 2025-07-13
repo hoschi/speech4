@@ -25,26 +25,30 @@ processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()
 
-# NEU: KenLM Sprachmodell laden (falls vorhanden)
+# NEU: KenLM Sprachmodell laden (falls vorhanden) - Optimiert für 32GB RAM
 LM_PATH = "server/lm/4gram_de.klm"
 
 def init_kenlm_decoder(app):
     """
     Stellt sicher, dass das KenLM-Modell existiert und initialisiert den Decoder.
     Hängt den Decoder an app.state.decoder.
+    Verwendet optimierte Parameter für 32GB RAM-Kompatibilität.
     """
     import shutil as _shutil
     CORPUS = "server/data/corpus.txt"
     BASE_CORPUS = "german_base_corpus.txt"
+    
     if not os.path.isfile(LM_PATH):
-        print("[INFO] Kein KenLM-Modell gefunden. Erstelle Basismodell aus german_base_corpus.txt ...")
+        print("[INFO] Kein KenLM-Modell gefunden. Erstelle optimiertes Basismodell...")
         if not os.path.isfile(BASE_CORPUS):
             raise RuntimeError(f"{BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
         _shutil.copy(BASE_CORPUS, CORPUS)
         train_kenlm_pipeline()
-        print(f"[INFO] Basismodell erfolgreich generiert: {LM_PATH}")
+        print(f"[INFO] Optimiertes Modell erstellt: {LM_PATH}")
     else:
         print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
+    
+    # Extrahiere Labels aus dem Processor
     labels = list(processor.tokenizer.get_vocab().keys())
     app.state.decoder = build_ctcdecoder(
         labels,
@@ -220,19 +224,22 @@ def train_kenlm_pipeline():
     build_binary_path = shutil.which("build_binary")
     if not lmplz_path or not build_binary_path:
         raise RuntimeError("[ERROR] lmplz oder build_binary nicht im PATH gefunden! Ist KenLM korrekt installiert?")
-    lmplz_cmd = [lmplz_path, "-o", "4","-T","8", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
+    # Optimierte Parameter für 32GB RAM: Aggressives Pruning + Quantisierung
+    lmplz_cmd = [lmplz_path, "-o", "4", "--prune", "0", "1", "1", "1", "-S", "80%", "-T", "/tmp", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
 
     try:
         run(lmplz_cmd)
     except RuntimeError as e:
         # Fallback: --discount_fallback bei kleinen Daten
         if 'BadDiscountException' in str(e) or 'discount' in str(e):
-            lmplz_cmd.insert(3, "--discount_fallback")
-            run(lmplz_cmd)
+            print("[INFO] Fallback: Verwende discount_fallback...")
+            fallback_cmd = [lmplz_path, "-o", "4", "--discount_fallback", "--prune", "0", "1", "1", "1", "-S", "80%", "-T", "/tmp", "--skip_symbols", "--text", CORPUS, "--arpa", ARPA]
+            run(fallback_cmd)
         else:
             raise
-    # 3. Komprimieren
-    run([build_binary_path, ARPA, KENLM_BIN])
+    # 3. Optimierte Komprimierung mit 8-bit Quantisierung
+    build_cmd = [build_binary_path, "-a", "22", "-q", "8", "-b", "8", "trie", ARPA, KENLM_BIN]
+    run(build_cmd)
     # 4. Modell verschieben
     shutil.move(KENLM_BIN, LM_TARGET)
     if use_base:
@@ -249,6 +256,8 @@ def train_lm():
         return JSONResponse(content={"status": "success", "output": output})
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
+
+
 
 # Initialisierung beim Serverstart (blockierend, garantiert Decoder)
 init_kenlm_decoder(app)

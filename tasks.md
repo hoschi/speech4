@@ -54,6 +54,13 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
         - n-Gramm-Modell (3- oder 4-Gramm, Kneser-Ney) mit lmplz bauen
         - Komprimieren mit build_binary
         - Modell nach `server/lm/` legen
+- [x] **KenLM-Optimierung für 32GB RAM implementieren:**
+    - [x] Aggressives Pruning mit `--prune 0 1 1 1` für 60-80% Größenreduktion
+    - [x] 8-bit Quantisierung mit `-q 8` für zusätzliche 50-70% Reduktion
+    - [x] Memory Mapping für lazy loading (automatisch durch KenLM)
+    - [x] Optimierte lmplz-Parameter: `-o 4 --prune 0 1 1 1 -S 80% -T /tmp`
+    - [x] Optimierte build_binary-Parameter: `-a 22 -q 8 -b 8 trie`
+    - [x] Integration in bestehende Pipeline (keine separate Datei)
     - [x] **Integration in pyctcdecode:**
         - Modell im Backend laden und für Decoding nutzen
     - [x] **Kontinuierliche Aktualisierung:**

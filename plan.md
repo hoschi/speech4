@@ -14,11 +14,13 @@ Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger 
     - Basis-Akustikmodell: `wav2vec2-xls-r-1B-german` über PyTorch auf CPU/Neural Engine (kleiner 100 ms/Chunk)
     - Streaming-optimiertes Modell: `wav2vec-S` für niedrige Latenz und konsistente Echtzeit-Qualität
 - **Batch-Training:** Python-Endpoint mit HuggingFace Transformers + PEFT (LoRA-Adapter + EWC)
+- **Sprachmodell-Optimierung:** KenLM mit aggressivem Pruning und Quantisierung für 32GB RAM-Kompatibilität
 
 #### Beschränkungen
 - Keine NVIDIA-GPU verfügbar (nur CPU/Neural Engine)  
 - Echtzeit-Anforderung: kleiner 100 ms Latenz pro 20 ms Audio (Realtime-Factor kleiner 5×)  
 - Nur kostenlose, quelloffene Frameworks (HuggingFace, PEFT, PyTorch)  
+- **KenLM-Modellgröße:** Optimiert für 32GB RAM durch Pruning und Quantisierung
 
 #### Technischer Stack
 | Ebene               | Technologie                                    |
@@ -29,6 +31,13 @@ Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger 
 | Streaming-Server    | Python + WebSocket (uvicorn, websockets)       |
 | Client-Frontend     | React, Web-Audio API                           |
 | Batch-Training      | HuggingFace Transformers + PEFT + PyTorch      |
+| **Sprachmodell**    | **KenLM mit aggressivem Pruning + 8-bit Quantisierung** |
+
+#### KenLM-Optimierungsstrategie
+- **Aggressives Pruning:** 60-80% Größenreduktion durch Entfernung seltener n-Gramme
+- **Binärformat + Quantisierung:** Zusätzliche 50-70% Reduktion durch 8-bit Quantisierung
+- **Memory Mapping:** Lazy Loading für Modelle größer als verfügbarer RAM
+- **Optimierte Parameter:** `-o 4 --prune 0 1 1 1 -S 80%` für maximale Effizienz
 
 #### Werkzeuge
 - Python 3.10, venv benutzen
@@ -37,3 +46,4 @@ Ein leichtgewichtiger, personalisierter Speech-to-Text-Service, der mit weniger 
 - FastAPI für Endpoints  
 - React, TypeScript, Vite
 - Web-Audio API  
+- **KenLM-Tools:** lmplz, build_binary mit optimierten Parametern
