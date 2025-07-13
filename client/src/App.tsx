@@ -5,11 +5,17 @@ import TranscriptEditor from './components/TranscriptEditor'
 import TrainButton from './components/TrainButton'
 import { useState, useRef } from 'react'
 
+type Alternative = {
+  text: string;
+  confidence: number;
+};
+
 function App() {
   const [transcript, setTranscript] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false)
+  const [alternatives, setAlternatives] = useState<Alternative[]>([])
   const audioRecorderRef = useRef<{ cleanup: () => void } | null>(null)
 
   // Diese Funktion wird an AudioRecorder übergeben, um Recording-Status zu setzen
@@ -18,6 +24,7 @@ function App() {
     if (rec) {
       setTranscript('') // Editor leeren, wenn neue Aufnahme startet
       setAudioBlob(null);
+      setAlternatives([]); // Alternativen zurücksetzen
     }
   }
 
@@ -31,6 +38,10 @@ function App() {
       // Nur setzen, wenn das finale Ergebnis nicht leer ist
       if (msg.text && msg.text.trim() !== '') {
         setTranscript(msg.text)
+      }
+      // Alternativen setzen, falls vorhanden
+      if (msg.alternatives) {
+        setAlternatives(msg.alternatives)
       }
       // Ressourcen abbauen und Aufnahme-Status zurücksetzen
       audioRecorderRef.current?.cleanup();
@@ -60,6 +71,7 @@ function App() {
         onTranscriptChange={isRecording ? () => {} : setTranscript}
         disabled={isRecording}
         audioBlob={audioBlob}
+        alternatives={alternatives}
       />
       <TrainButton />
     </div>

@@ -7,16 +7,25 @@ const HypothesisChunk = z.object({
   end: z.number(),
   text: z.string(),
 });
+
+const Alternative = z.object({
+  text: z.string(),
+  confidence: z.number(),
+});
+
 const FinalChunk = z.object({
   type: z.literal('final'),
   text: z.string(),
+  alternatives: z.array(Alternative).optional(),
 });
+
 const ErrorChunk = z.object({
   type: z.literal('error'),
   message: z.string(),
 });
 
 type HypothesisChunk = z.infer<typeof HypothesisChunk>;
+type Alternative = z.infer<typeof Alternative>;
 type FinalChunk = z.infer<typeof FinalChunk>;
 type ErrorChunk = z.infer<typeof ErrorChunk>;
 export type TranscriptMessage = HypothesisChunk | FinalChunk | ErrorChunk;
@@ -78,7 +87,13 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
 
         if (text && text.trim()) {
             if (isFinal) {
-                onTranscriptChunk({ type: 'final', text });
+                // Verarbeite finale Nachricht mit möglichen Alternativen
+                const finalMessage: FinalChunk = { 
+                  type: 'final', 
+                  text: data.text,
+                  alternatives: data.alternatives || undefined
+                };
+                onTranscriptChunk(finalMessage);
                 // Stoppt die Aufnahme serverseitig ausgelöst
                 stopRecording(true);
             } else {

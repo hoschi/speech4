@@ -22,11 +22,14 @@
     -   [x] Partielle und finale Ergebnisse an den Client gesendet.
     -   [x] **Code-Bereinigung:** Die irreführende Funktion `init_kenlm_decoder` wurde zu `load_custom_vocabulary` umbenannt, da sie nur das VOSK-Vokabular lädt und nicht mit KenLM arbeitet.
     -   [x] **Audio-Format-Fix:** Client sendet jetzt PCM-Daten (16kHz, mono) anstelle von WebM-Blobs, was VOSK korrekt verarbeiten kann.
+    -   [x] **VOSK N-Best-Alternativen:** `SetMaxAlternatives(3)` implementiert, um mehrere Transkriptionsalternativen zu erhalten.
 -   **Client-Aufgaben (React):**
     -   [x] React-Projekt aufgesetzt.
     -   [x] UI mit "Start/Stop"-Button und Textfeld erstellt.
     -   [x] Mikrofonzugriff und Audio-Streaming via `MediaRecorder` und WebSocket implementiert.
     -   [x] Empfangene Transkriptionen in der UI angezeigt.
+    -   [x] **VOSK-Alternativen UI:** TypeScript-Typen erweitert und UI-Komponenten hinzugefügt, um VOSK-Alternativen unter dem Textfeld anzuzeigen.
+    -   [x] **Alternative-Auswahl:** Klickbare Buttons implementiert, um zwischen verschiedenen VOSK-Transkriptionsalternativen zu wählen.
 
 ### ✅ Meilenstein 2: Der Basis-Korrektur-Loop (Abgeschlossen)
 

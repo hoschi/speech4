@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 
+type Alternative = {
+  text: string;
+  confidence: number;
+};
+
 type TranscriptEditorProps = {
   transcript: string;
   onTranscriptChange: (t: string) => void;
   audioBlob: Blob | null;
   disabled?: boolean;
+  alternatives?: Alternative[];
 };
 
-const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, onTranscriptChange, audioBlob, disabled = false }) => {
+const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ 
+  transcript, 
+  onTranscriptChange, 
+  audioBlob, 
+  disabled = false,
+  alternatives = []
+}) => {
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -58,6 +70,11 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, onTrans
     if (!isDirty) setIsDirty(true);
   }
 
+  const handleAlternativeClick = (alternativeText: string) => {
+    onTranscriptChange(alternativeText);
+    setIsDirty(true);
+  };
+
   return (
     <div style={{ margin: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
       <label htmlFor="transcript" className="transcript-label">Transkript:</label>
@@ -70,6 +87,52 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ transcript, onTrans
         disabled={uploaded || disabled}
         style={{ resize: 'vertical', minHeight: '4em', maxWidth: 420 }}
       />
+      
+      {/* Alternativen anzeigen */}
+      {alternatives.length > 0 && (
+        <div style={{ marginTop: '1rem', width: '100%', maxWidth: 420 }}>
+          <label style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem', display: 'block' }}>
+            VOSK-Alternativen:
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {alternatives.map((alt, index) => (
+              <button
+                key={index}
+                onClick={() => handleAlternativeClick(alt.text)}
+                disabled={uploaded || disabled}
+                style={{
+                  padding: '0.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  background: 'white',
+                  cursor: uploaded || disabled ? 'default' : 'pointer',
+                  textAlign: 'left',
+                  fontSize: '0.9rem',
+                  opacity: uploaded || disabled ? 0.6 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!uploaded && !disabled) {
+                    e.currentTarget.style.background = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!uploaded && !disabled) {
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                  {alt.text}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                  Konfidenz: {(alt.confidence * 100).toFixed(1)}%
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <button
         onClick={handleUpload}
         disabled={loading || !transcript.trim() || !isDirty || uploaded || disabled || !audioBlob}

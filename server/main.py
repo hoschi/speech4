@@ -77,10 +77,13 @@ async def websocket_stream(websocket: WebSocket):
     vocabulary = app.state.custom_vocabulary
     recognizer = KaldiRecognizer(vosk_model, 16000, json.dumps(vocabulary, ensure_ascii=False)) if vocabulary else KaldiRecognizer(vosk_model, 16000)
     
+    # Aktiviere mehrere Alternativen (N-Best-Liste)
+    recognizer.SetMaxAlternatives(3)  # Erstelle bis zu 3 Alternativen
+    
     if vocabulary:
-        print("[INFO] VOSK Recognizer mit benutzerdefiniertem Vokabular initialisiert.")
+        print("[INFO] VOSK Recognizer mit benutzerdefiniertem Vokabular und N-Best-Alternativen initialisiert.")
     else:
-        print("[INFO] VOSK Recognizer ohne benutzerdefiniertes Vokabular initialisiert.")
+        print("[INFO] VOSK Recognizer ohne benutzerdefiniertes Vokabular und N-Best-Alternativen initialisiert.")
 
     try:
         while True:
@@ -113,9 +116,15 @@ async def websocket_stream(websocket: WebSocket):
                         # Sende ein spezielles finales Ergebnis
                         final_data = json.loads(final_result_json)
                         final_data['type'] = 'final'  # Markiere als finales Ergebnis
+                        
+                        # VOSK gibt bereits Alternativen zurück, wenn SetMaxAlternatives gesetzt ist
+                        # Die Alternativen sind in der JSON-Struktur enthalten
+                        if 'alternatives' in final_data:
+                            print(f"[INFO] VOSK lieferte {len(final_data['alternatives'])} echte Alternativen")
+                        
                         await websocket.send_text(json.dumps(final_data))
                         # Beende die Schleife, nachdem das Endergebnis gesendet wurde
-                        break 
+                        break
                 except json.JSONDecodeError:
                     # Ignoriere Textnachrichten, die kein valides JSON sind
                     print(f"[WARN] Ungültige Textnachricht vom Client empfangen: {message['text']}")
