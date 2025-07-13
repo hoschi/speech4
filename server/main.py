@@ -26,7 +26,7 @@ model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()
 
 # NEU: KenLM Sprachmodell laden (falls vorhanden)
-LM_PATH = "server/lm/4gram_de.klm"  # oder .arpa wenn USE_ARPA=true
+LM_PATH = "server/lm/4gram_de.klm"
 
 def init_kenlm_decoder(app):
     """
@@ -36,51 +36,23 @@ def init_kenlm_decoder(app):
     import shutil as _shutil
     CORPUS = "server/data/corpus.txt"
     BASE_CORPUS = "german_base_corpus.txt"
-    
-    # Prüfe welche Modell-Datei vorhanden ist (ARPA oder Binary)
-    lm_path_arpa = LM_PATH.replace('.klm', '.arpa')
-    lm_path_binary = LM_PATH
-    
-    # Priorität: 1. USE_ARPA Umgebungsvariable, 2. vorhandene Dateien
-    use_arpa = os.environ.get('USE_ARPA', 'false').lower() == 'true'
-    
-    if use_arpa:
-        # ARPA explizit gewünscht
-        lm_path = lm_path_arpa
-        if not os.path.isfile(lm_path):
-            print(f"[INFO] ARPA-Modell {lm_path} nicht gefunden. Erstelle Basismodell...")
-            if not os.path.isfile(BASE_CORPUS):
-                raise RuntimeError(f"{BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
-            _shutil.copy(BASE_CORPUS, CORPUS)
-            train_kenlm_pipeline()
-            print(f"[INFO] ARPA-Basismodell erfolgreich generiert: {lm_path}")
-        else:
-            print(f"[INFO] ARPA-Modell gefunden: {lm_path}")
+    if not os.path.isfile(LM_PATH):
+        print("[INFO] Kein KenLM-Modell gefunden. Erstelle Basismodell aus german_base_corpus.txt ...")
+        if not os.path.isfile(BASE_CORPUS):
+            raise RuntimeError(f"{BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
+        _shutil.copy(BASE_CORPUS, CORPUS)
+        train_kenlm_pipeline()
+        print(f"[INFO] Basismodell erfolgreich generiert: {LM_PATH}")
     else:
-        # Prüfe welche Datei vorhanden ist
-        if os.path.isfile(lm_path_binary):
-            lm_path = lm_path_binary
-            print(f"[INFO] Binary-Modell gefunden: {lm_path}")
-        elif os.path.isfile(lm_path_arpa):
-            lm_path = lm_path_arpa
-            print(f"[INFO] ARPA-Modell gefunden (Binary nicht vorhanden): {lm_path}")
-        else:
-            # Keine Datei vorhanden, erstelle Binary (Standard)
-            lm_path = lm_path_binary
-            print(f"[INFO] Kein KenLM-Modell gefunden. Erstelle Binary-Basismodell...")
-            if not os.path.isfile(BASE_CORPUS):
-                raise RuntimeError(f"{BASE_CORPUS} nicht gefunden! Bitte gemäß README herunterladen und extrahieren.")
-            _shutil.copy(BASE_CORPUS, CORPUS)
-            train_kenlm_pipeline()
-            print(f"[INFO] Binary-Basismodell erfolgreich generiert: {lm_path}")
+        print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
     labels = list(processor.tokenizer.get_vocab().keys())
     app.state.decoder = build_ctcdecoder(
         labels,
-        kenlm_model_path=lm_path,
+        kenlm_model_path=LM_PATH,
         alpha=0.5,  # optional, anpassbar
         beta=1.0    # optional, anpassbar
     )
-    print(f"[INFO] KenLM Decoder geladen: {lm_path}")
+    print(f"[INFO] KenLM Decoder geladen: {LM_PATH}")
 
 def remove_word_repeats(text):
     words = text.split()
@@ -216,15 +188,9 @@ def train_kenlm_pipeline():
     LOG = "server/data/update_lm.log"
     CORPUS = "server/data/corpus.txt"
     BASE_CORPUS = "german_base_corpus.txt"
-    
-    # Bestimme das gewünschte Format basierend auf USE_ARPA
-    use_arpa = os.environ.get('USE_ARPA', 'false').lower() == 'true'
-    if use_arpa:
-        ARPA = "server/lm/4gram_de.arpa"
-        KENLM_BIN = None  # Nicht benötigt
-    else:
-        ARPA = "server/data/corpus.arpa"
-        KENLM_BIN = "server/lm/4gram_de.klm"
+    ARPA = "server/data/corpus.arpa"
+    KENLM_BIN = "server/data/corpus.klm"
+    LM_TARGET = "server/lm/4gram_de.klm"
 
     def run(cmd):
         with open(LOG, "a", encoding="utf-8") as log:
@@ -265,17 +231,13 @@ def train_kenlm_pipeline():
             run(lmplz_cmd)
         else:
             raise
-    # 3. Erstelle das gewünschte Format direkt am Zielort
-    if not use_arpa:
-        # Binary-Format gewünscht - komprimieren direkt zum Ziel
-        run([build_binary_path, ARPA, KENLM_BIN])
-    else:
-        # ARPA-Format gewünscht - bereits am richtigen Ort erstellt
-        pass
-    
+    # 3. Komprimieren
+    run([build_binary_path, ARPA, KENLM_BIN])
+    # 4. Modell verschieben
+    shutil.move(KENLM_BIN, LM_TARGET)
     if use_base:
-        return f"[SUCCESS] KenLM-Basismodell aus {BASE_CORPUS} generiert: {ARPA if use_arpa else KENLM_BIN}"
-    return f"[SUCCESS] KenLM-Modell bereit: {ARPA if use_arpa else KENLM_BIN}"
+        return f"[SUCCESS] KenLM-Basismodell aus {BASE_CORPUS} generiert: {LM_TARGET}"
+    return f"[SUCCESS] KenLM-Modell bereit: {LM_TARGET}"
 
 @app.post("/train/lm")
 def train_lm():
