@@ -46,9 +46,9 @@ if not os.path.exists(VOSK_MODEL_PATH):
 vosk_model = Model(VOSK_MODEL_PATH)
 app.state.custom_vocabulary = []
 
-def init_kenlm_decoder(app):
+def load_custom_vocabulary(app):
     """
-    Lädt die Vokabelliste aus den bisherigen Korrekturen.
+    Lädt die Vokabelliste aus den bisherigen Korrekturen für VOSK.
     """
     if os.path.exists("server/data/corpus.txt"):
         print(f"[INFO] Lade benutzerdefiniertes Vokabular aus server/data/corpus.txt")
@@ -146,14 +146,14 @@ def train_lm():
     try:
         result = subprocess.run([sys.executable, "server/preprocess_corrections.py"], capture_output=True, text=True, check=True)
         output = result.stdout
-        init_kenlm_decoder(app)
+        load_custom_vocabulary(app)
         return JSONResponse(content={"status": "success", "output": output})
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
 
 @app.on_event("startup")
 def startup_event():
-    init_kenlm_decoder(app)
+    load_custom_vocabulary(app)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, reload_dirs=["server"])

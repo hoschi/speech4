@@ -20,6 +20,7 @@
     -   [x] VOSK-Recognizer-Instanz pro Verbindung erstellt.
     -   [x] Audio-Chunks an den Recognizer weitergeleitet.
     -   [x] Partielle und finale Ergebnisse an den Client gesendet.
+    -   [x] **Code-Bereinigung:** Die irreführende Funktion `init_kenlm_decoder` wurde zu `load_custom_vocabulary` umbenannt, da sie nur das VOSK-Vokabular lädt und nicht mit KenLM arbeitet.
 -   **Client-Aufgaben (React):**
     -   [x] React-Projekt aufgesetzt.
     -   [x] UI mit "Start/Stop"-Button und Textfeld erstellt.
@@ -50,7 +51,7 @@
     -   [ ] **Trainings-Pipeline erweitern:**
         -   [ ] Das `train/lm`-Skript so anpassen, dass es die Nutzer-Korrekturen mit dem großen Basiskorpus zusammenführt.
         -   [ ] Das Skript soll die KenLM-Kommandozeilen-Tools (`lmplz` und `build_binary`) aufrufen, um ein `.arpa`- und dann ein `.klm`-Modell zu trainieren.
-    -   [ ] **Integration in VOSK:**
+    -   [ ] **Migration von VOSK zu pyctcdecode + KenLM:**
         -   [ ] VOSK ist nicht ideal für die tiefe Integration von benutzerdefinierten `.klm`-Modellen. Wir ersetzen den VOSK-Recognizer durch `pyctcdecode`, das speziell für die Fusion mit KenLM-Modellen entwickelt wurde.
         -   [ ] Dazu muss das akustische Modell ausgetauscht werden. Wir verwenden `facebook/wav2vec2-large-xlsr-53-german` als neues Basismodell, da es mit `pyctcdecode` kompatibel ist.
         -   [ ] Die WebSocket-Logik anpassen, um die Chunks an das Wav2Vec2-Modell zu senden und die `logits` dann mit dem `pyctcdecode`-Decoder und unserem KenLM-Modell zu verarbeiten.
