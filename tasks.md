@@ -21,6 +21,7 @@
     -   [x] Audio-Chunks an den Recognizer weitergeleitet.
     -   [x] Partielle und finale Ergebnisse an den Client gesendet.
     -   [x] **Code-Bereinigung:** Die irreführende Funktion `init_kenlm_decoder` wurde zu `load_custom_vocabulary` umbenannt, da sie nur das VOSK-Vokabular lädt und nicht mit KenLM arbeitet.
+    -   [x] **Audio-Format-Fix:** Client sendet jetzt PCM-Daten (16kHz, mono) anstelle von WebM-Blobs, was VOSK korrekt verarbeiten kann.
 -   **Client-Aufgaben (React):**
     -   [x] React-Projekt aufgesetzt.
     -   [x] UI mit "Start/Stop"-Button und Textfeld erstellt.

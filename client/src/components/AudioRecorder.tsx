@@ -42,12 +42,18 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
   // Cleanup-Methode für App
   useImperativeHandle(ref, () => ({
     cleanup: () => {
-      processorRef.current?.disconnect();
+      if (processorRef.current) {
+        processorRef.current.disconnect();
+        processorRef.current = null;
+      }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close().catch(console.error);
+        audioContextRef.current = null;
       }
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
       wsRef.current?.close();
+      wsRef.current = null;
       audioChunksRef.current = [];
     }
   }));
@@ -90,18 +96,45 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        sampleRate: 16000,
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true
+      }
+    });
     mediaStreamRef.current = stream;
 
+    // AudioContext für PCM-Konvertierung erstellen
+    audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+    const source = audioContextRef.current.createMediaStreamSource(stream);
+    
+    // ScriptProcessor für PCM-Konvertierung
+    processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+    
+    processorRef.current.onaudioprocess = (event) => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        const inputData = event.inputBuffer.getChannelData(0);
+        // Konvertiere Float32 zu Int16 PCM
+        const pcmData = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+        }
+        wsRef.current.send(pcmData.buffer);
+      }
+    };
+
+    source.connect(processorRef.current);
+    processorRef.current.connect(audioContextRef.current.destination);
+
+    // MediaRecorder für Blob-Speicherung (nicht für WebSocket)
     mediaRecorderRef.current = new MediaRecorder(stream);
     mediaRecorderRef.current.ondataavailable = (event) => {
         audioChunksRef.current.push(event.data);
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(event.data);
-        }
     };
 
-    mediaRecorderRef.current.start(250); // Send data every 250ms
+    mediaRecorderRef.current.start(250);
 
     setRecording(true);
     if (typeof onRecordingChange === 'function') onRecordingChange(true);
@@ -113,6 +146,12 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.stop();
+    }
+
+    // AudioContext-Ressourcen bereinigen
+    if (processorRef.current) {
+        processorRef.current.disconnect();
+        processorRef.current = null;
     }
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

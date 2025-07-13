@@ -90,7 +90,10 @@ async def websocket_stream(websocket: WebSocket):
             # Prüfe, ob es sich um Binärdaten (Audio) handelt
             if "bytes" in message and message["bytes"]:
                 audio_data = message["bytes"]
-                if recognizer.AcceptWaveform(audio_data):
+                # Konvertiere bytes zu Int16Array für VOSK
+                import array
+                audio_array = array.array('h', audio_data)
+                if recognizer.AcceptWaveform(audio_array.tobytes()):
                     # Finale Hypothese nach einer Pause
                     result_json = recognizer.Result()
                     await websocket.send_text(result_json)
