@@ -93,14 +93,15 @@ async def websocket_stream(websocket: WebSocket):
                 # Konvertiere bytes zu Int16Array für VOSK
                 import array
                 audio_array = array.array('h', audio_data)
-                if recognizer.AcceptWaveform(audio_array.tobytes()):
-                    # Finale Hypothese nach einer Pause - nur als partielle Hypothese senden
-                    result_json = recognizer.Result()
-                    await websocket.send_text(result_json)
-                else:
-                    # Partielle Hypothese während des Sprechens
-                    partial_result_json = recognizer.PartialResult()
-                    await websocket.send_text(partial_result_json)
+                
+                # Verarbeite das Audio, aber sende nur partielle Ergebnisse
+                # VOSK entscheidet selbst, wann es AcceptWaveform() True zurückgibt
+                # aber wir ignorieren das und senden nur PartialResult()
+                recognizer.AcceptWaveform(audio_array.tobytes())
+                
+                # Sende immer nur partielle Ergebnisse, nie finale
+                partial_result_json = recognizer.PartialResult()
+                await websocket.send_text(partial_result_json)
             
             # Prüfe, ob es sich um eine Textnachricht handelt (für Steuersignale)
             elif "text" in message:
