@@ -27,11 +27,13 @@ function App() {
     console.log(msg)
     if (msg.type === 'hypothesis') {
       if (msg.text.trim() !== '') {
-        setHypotheses(prev => [...prev, msg])
+        // Ersetze alle Hypothesen mit der neuesten
+        setHypotheses([msg])
       }
     } else if (msg.type === 'final') {
       setHypotheses([])
-      if (msg.text.trim() !== '') {
+      // Nur setzen, wenn das finale Ergebnis nicht leer ist
+      if (msg.text && msg.text.trim() !== '') {
         setUserTranscript(msg.text)
       }
       // Ressourcen abbauen und Aufnahme-Status zurücksetzen

@@ -94,7 +94,7 @@ async def websocket_stream(websocket: WebSocket):
                 import array
                 audio_array = array.array('h', audio_data)
                 if recognizer.AcceptWaveform(audio_array.tobytes()):
-                    # Finale Hypothese nach einer Pause
+                    # Finale Hypothese nach einer Pause - nur als partielle Hypothese senden
                     result_json = recognizer.Result()
                     await websocket.send_text(result_json)
                 else:
@@ -109,7 +109,10 @@ async def websocket_stream(websocket: WebSocket):
                     # EOF-Signal vom Client, um die Transkription abzuschließen
                     if data.get('eof') == 1:
                         final_result_json = recognizer.FinalResult()
-                        await websocket.send_text(final_result_json)
+                        # Sende ein spezielles finales Ergebnis
+                        final_data = json.loads(final_result_json)
+                        final_data['type'] = 'final'  # Markiere als finales Ergebnis
+                        await websocket.send_text(json.dumps(final_data))
                         # Beende die Schleife, nachdem das Endergebnis gesendet wurde
                         break 
                 except json.JSONDecodeError:
