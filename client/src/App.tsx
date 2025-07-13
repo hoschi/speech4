@@ -6,8 +6,7 @@ import TrainButton from './components/TrainButton'
 import { useState, useRef } from 'react'
 
 function App() {
-  const [hypotheses, setHypotheses] = useState<TranscriptMessage[]>([])
-  const [userTranscript, setUserTranscript] = useState<string>('')
+  const [transcript, setTranscript] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false)
@@ -17,9 +16,8 @@ function App() {
   const handleRecordingChange = (rec: boolean) => {
     setIsRecording(rec)
     if (rec) {
-      setUserTranscript('') // Editor leeren, wenn neue Aufnahme startet
+      setTranscript('') // Editor leeren, wenn neue Aufnahme startet
       setAudioBlob(null);
-      setHypotheses([])
     }
   }
 
@@ -27,14 +25,12 @@ function App() {
     console.log(msg)
     if (msg.type === 'hypothesis') {
       if (msg.text.trim() !== '') {
-        // Ersetze alle Hypothesen mit der neuesten
-        setHypotheses([msg])
+        setTranscript(msg.text)
       }
     } else if (msg.type === 'final') {
-      setHypotheses([])
       // Nur setzen, wenn das finale Ergebnis nicht leer ist
       if (msg.text && msg.text.trim() !== '') {
-        setUserTranscript(msg.text)
+        setTranscript(msg.text)
       }
       // Ressourcen abbauen und Aufnahme-Status zurücksetzen
       audioRecorderRef.current?.cleanup();
@@ -49,16 +45,6 @@ function App() {
     setAudioBlob(blob);
   };
 
-  // Laufendes Transkript aus Hypothesen zusammensetzen
-  const liveTranscript = hypotheses
-    .filter((h): h is { type: 'hypothesis', start: number, end: number, text: string } => h.type === 'hypothesis')
-    .sort((a, b) => a.start - b.start)
-    .map(h => h.text)
-    .join(' ')
-    .replace(/ +/g, ' ')
-    .trim()
-    //console.log(liveTranscript, hypotheses)
-
   return (
     <div className="app-card">
       <h1>Speech-to-Text Streaming Demo</h1>
@@ -70,8 +56,8 @@ function App() {
       />
       {error && <div style={{ color: 'red', margin: '1rem 0' }}>Fehler: {error}</div>}
       <TranscriptEditor
-        transcript={isRecording ? liveTranscript : userTranscript}
-        onTranscriptChange={isRecording ? () => {} : setUserTranscript}
+        transcript={transcript}
+        onTranscriptChange={isRecording ? () => {} : setTranscript}
         disabled={isRecording}
         audioBlob={audioBlob}
       />
