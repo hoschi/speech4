@@ -223,6 +223,10 @@ async def ollama_stream(req: OllamaRequest):
                                             streaming = True
                                             i = start_idx + len("<corrected>")
                                             print(f"[OLLAMA-STREAM] <corrected>-Start erkannt an Pos {start_idx}")
+                                            # Buffer auf den Teil nach dem Start-Tag setzen
+                                            content_buffer = content_buffer[i:]
+                                            i = 0
+                                            continue
                                         else:
                                             content_buffer = content_buffer[-len("<corrected>")+1:] if len(content_buffer) > len("<corrected>") else content_buffer
                                             break
@@ -242,8 +246,10 @@ async def ollama_stream(req: OllamaRequest):
                                                         break
                                                     elif '</corrected>' in pending:
                                                         end_tag_pos = pending.find('</corrected>')
+                                                        # Nur den Text VOR dem End-Tag streamen, aber KEINE Tag-Fragmente
                                                         to_stream = pending[:end_tag_pos]
-                                                        if to_stream:
+                                                        # Nur streamen, wenn to_stream KEIN Tag-Fragment ist (also nicht mit '<' beginnt)
+                                                        if to_stream and not to_stream.lstrip().startswith('<'):
                                                             print(f"[OLLAMA-STREAM] Streame vor End-Tag: {to_stream!r}")
                                                             yield to_stream
                                                         print(f"[OLLAMA-STREAM] </corrected>-Ende erkannt, Streaming-Block beenden")
