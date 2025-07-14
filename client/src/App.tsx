@@ -43,9 +43,8 @@ function App() {
       if (msg.alternatives) {
         setAlternatives(msg.alternatives)
       }
-      // Ressourcen abbauen und Aufnahme-Status zurücksetzen
-      audioRecorderRef.current?.cleanup();
       setIsRecording(false);
+      // KEIN Cleanup mehr hier!
     } else if (msg.type === 'error') {
       setError(msg.message)
     }
