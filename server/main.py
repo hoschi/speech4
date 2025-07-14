@@ -20,6 +20,7 @@ import json
 from vosk import Model, KaldiRecognizer
 from fastapi.responses import StreamingResponse
 import httpx
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -169,8 +170,12 @@ def train_lm():
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
 
+# Request-Model für Ollama
+class OllamaRequest(BaseModel):
+    text: str
+
 @app.post("/ollama/stream")
-async def ollama_stream(text: str):
+async def ollama_stream(req: OllamaRequest):
     """
     Streamt die Antwort des Ollama-Modells 'asr-fixer' auf den gegebenen Text.
     """
@@ -180,7 +185,7 @@ async def ollama_stream(text: str):
         payload = {
             "model": "asr-fixer",
             "messages": [
-                {"role": "user", "content": text}
+                {"role": "user", "content": req.text}
             ],
             "stream": True
         }
@@ -188,7 +193,18 @@ async def ollama_stream(text: str):
             async with client.stream("POST", url, headers=headers, json=payload) as response:
                 async for chunk in response.aiter_text():
                     if chunk:
-                        yield chunk
+                        # Logge den Roh-Chunk
+                        print("[OLLAMA-RAW]", chunk.strip())
+                        # Versuche, das JSON zu parsen und nur den Text zu extrahieren
+                        try:
+                            for line in chunk.strip().splitlines():
+                                data = json.loads(line)
+                                content = data.get("message", {}).get("content", "")
+                                if content:
+                                    yield content
+                        except Exception as e:
+                            print(f"[OLLAMA-STREAM-ERROR] {e}")
+                            continue
     return StreamingResponse(stream_gen(), media_type="text/plain")
 
 @app.on_event("startup")
