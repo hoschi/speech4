@@ -31,6 +31,18 @@
     -   [x] **VOSK-Alternativen UI:** TypeScript-Typen erweitert und UI-Komponenten hinzugefügt, um VOSK-Alternativen unter dem Textfeld anzuzeigen.
     -   [x] **Alternative-Auswahl:** Klickbare Buttons implementiert, um zwischen verschiedenen VOSK-Transkriptionsalternativen zu wählen.
 
+### 📋 Meilenstein 1a: Einbindung von Ollama
+
+*Ziel: Einen lokalen Ollama-Server mit dem Modell 'asr-fixer' nutzen, um Textkorrekturen per Button im Client zu ermöglichen. Die Antwort des Modells wird gestreamt und unter dem aktuellen Textfeld angezeigt.*
+
+-   [x] Ollama-Server lokal einrichten und Modell 'asr-fixer' bereitstellen (ggf. Modell herunterladen und starten).
+-   [ ] Backend-Endpunkt erstellen, der Text an den Ollama-Server (Modell 'asr-fixer') weiterleitet und die Antwort als Stream zurückgibt.
+-   [ ] Im Client einen neuen Button hinzufügen, der den aktuellen Text aus dem Input-Feld an den neuen Backend-Endpunkt sendet.
+-   [ ] Im Client ein neues Textfeld unter dem bestehenden einfügen, das die gestreamte Antwort von Ollama anzeigt.
+-   [ ] Client-Logik implementieren, um die gestreamte Antwort vom Backend zu empfangen und im neuen Textfeld anzuzeigen.
+-   [ ] Testen des gesamten Workflows: Text senden, Stream empfangen, Anzeige im neuen Feld.
+
+
 ### ✅ Meilenstein 2: Der Basis-Korrektur-Loop (Abgeschlossen)
 
 *Ziel war es, Korrekturen zu sammeln und das Vokabular der ASR-Engine zu erweitern. Das System speichert nun Daten und erstellt eine Wortliste.*
