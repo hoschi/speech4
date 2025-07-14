@@ -36,11 +36,17 @@
 *Ziel: Einen lokalen Ollama-Server mit dem Modell 'asr-fixer' nutzen, um Textkorrekturen per Button im Client zu ermöglichen. Die Antwort des Modells wird gestreamt und unter dem aktuellen Textfeld angezeigt.*
 
 -   [x] Ollama-Server lokal einrichten und Modell 'asr-fixer' bereitstellen (ggf. Modell herunterladen und starten).
--   [ ] Backend-Endpunkt erstellen, der Text an den Ollama-Server (Modell 'asr-fixer') weiterleitet und die Antwort als Stream zurückgibt.
--   [ ] Im Client einen neuen Button hinzufügen, der den aktuellen Text aus dem Input-Feld an den neuen Backend-Endpunkt sendet.
--   [ ] Im Client ein neues Textfeld unter dem bestehenden einfügen, das die gestreamte Antwort von Ollama anzeigt.
--   [ ] Client-Logik implementieren, um die gestreamte Antwort vom Backend zu empfangen und im neuen Textfeld anzuzeigen.
+-   [x] Backend-Endpunkt erstellen, der Text an den Ollama-Server (Modell 'asr-fixer') weiterleitet und die Antwort als Stream zurückgibt.
+-   [x] Im Client einen neuen Button hinzufügen, der den aktuellen Text aus dem Input-Feld an den neuen Backend-Endpunkt sendet.
+-   [x] Im Client ein neues Textfeld unter dem bestehenden einfügen, das die gestreamte Antwort von Ollama anzeigt.
+-   [x] Client-Logik implementieren, um die gestreamte Antwort vom Backend zu empfangen und im neuen Textfeld anzuzeigen.
+-   [ ] Server: Aus jedem Ollama-Chunk nur den Text im <corrected>...</corrected>-Tag extrahieren und an den Client senden. Rohdaten im Log ausgeben.
+-   [ ] Logging im Ollama-Streamingprozess nach Debugging wieder entfernen.
 -   [ ] Testen des gesamten Workflows: Text senden, Stream empfangen, Anzeige im neuen Feld.
+
+**Beispiel für Ollama-Antworten:**
+- Ausgabe: <thoughts>Ich weiß nicht was du einkaufen möchtest, aber hier ist der korrigierte Text: </thoughts><corrected>Ich gehe morgen zum Supermarkt, brauchst du etwas?</corrected>
+- Ausgabe: <corrected>Ich gehe morgen zum Supermarkt, brauchst du etwas?</corrected>
 
 
 ### ✅ Meilenstein 2: Der Basis-Korrektur-Loop (Abgeschlossen)

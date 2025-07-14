@@ -189,19 +189,99 @@ async def ollama_stream(req: OllamaRequest):
             ],
             "stream": True
         }
+        # Robuste Streaming-Logik für <corrected>...</corrected> über Chunk-Grenzen hinweg, auch bei Split-Tags
         async with httpx.AsyncClient(timeout=None) as client:
+            content_buffer = ""
+            streaming = False
+            pending = ""
             async with client.stream("POST", url, headers=headers, json=payload) as response:
                 async for chunk in response.aiter_text():
                     if chunk:
-                        # Logge den Roh-Chunk
                         print("[OLLAMA-RAW]", chunk.strip())
-                        # Versuche, das JSON zu parsen und nur den Text zu extrahieren
                         try:
                             for line in chunk.strip().splitlines():
                                 data = json.loads(line)
                                 content = data.get("message", {}).get("content", "")
-                                if content:
-                                    yield content
+                                if not content:
+                                    continue
+                                # Unicode-Ersatzzeichen für < und > und / ersetzen
+                                content = (
+                                    content.replace("\\u003c", "<")
+                                           .replace("\\u003e", ">")
+                                           .replace("\\u002f", "/")
+                                           .replace("\u003c", "<")
+                                           .replace("\u003e", ">")
+                                           .replace("\u002f", "/")
+                                )
+                                content_buffer += content
+                                print(f"[OLLAMA-STREAM] Content-Buffer: {content_buffer!r}")
+                                i = 0
+                                while i < len(content_buffer):
+                                    if not streaming:
+                                        start_idx = content_buffer.find("<corrected>", i)
+                                        if start_idx != -1:
+                                            streaming = True
+                                            i = start_idx + len("<corrected>")
+                                            print(f"[OLLAMA-STREAM] <corrected>-Start erkannt an Pos {start_idx}")
+                                        else:
+                                            content_buffer = content_buffer[-len("<corrected>")+1:] if len(content_buffer) > len("<corrected>") else content_buffer
+                                            break
+                                    else:
+                                        # Wir sind im Streaming-Modus
+                                        if pending:
+                                            while i < len(content_buffer):
+                                                pending += content_buffer[i]
+                                                if content_buffer[i] == '>':
+                                                    if pending == '</corrected>':
+                                                        print(f"[OLLAMA-STREAM] </corrected>-Ende erkannt, Streaming-Block beenden")
+                                                        streaming = False
+                                                        pending = ""
+                                                        i += 1
+                                                        content_buffer = content_buffer[i:]
+                                                        i = 0
+                                                        break
+                                                    elif '</corrected>' in pending:
+                                                        end_tag_pos = pending.find('</corrected>')
+                                                        to_stream = pending[:end_tag_pos]
+                                                        if to_stream:
+                                                            print(f"[OLLAMA-STREAM] Streame vor End-Tag: {to_stream!r}")
+                                                            yield to_stream
+                                                        print(f"[OLLAMA-STREAM] </corrected>-Ende erkannt, Streaming-Block beenden")
+                                                        rest = pending[end_tag_pos + len('</corrected>'):]
+                                                        content_buffer = rest + content_buffer[i+1:]
+                                                        streaming = False
+                                                        pending = ""
+                                                        i = 0
+                                                        break
+                                                    else:
+                                                        print(f"[OLLAMA-STREAM] Puffer war kein End-Tag, streame: {pending}")
+                                                        yield pending
+                                                        pending = ""
+                                                        i += 1
+                                                        break
+                                                i += 1
+                                            else:
+                                                break
+                                        else:
+                                            # Suche nach <
+                                            next_tag = content_buffer.find('<', i)
+                                            if next_tag == -1:
+                                                # Kein < mehr, alles streamen
+                                                to_stream = content_buffer[i:]
+                                                if to_stream:
+                                                    print(f"[OLLAMA-STREAM] Streame: {to_stream!r}")
+                                                    yield to_stream
+                                                content_buffer = ''
+                                                break
+                                            else:
+                                                # Alles davor streamen
+                                                if next_tag > i:
+                                                    to_stream = content_buffer[i:next_tag]
+                                                    print(f"[OLLAMA-STREAM] Streame: {to_stream!r}")
+                                                    yield to_stream
+                                                # Ab < puffern, pending neu beginnen
+                                                pending = '<'
+                                                i = next_tag + 1
                         except Exception as e:
                             print(f"[OLLAMA-STREAM-ERROR] {e}")
                             continue
