@@ -12,3 +12,4 @@ datasets
 soundfile
 jiwer 
 librosa 
+httpx 

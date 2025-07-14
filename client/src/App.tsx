@@ -4,6 +4,12 @@ import type { TranscriptMessage } from './components/AudioRecorder'
 import TranscriptEditor from './components/TranscriptEditor'
 import TrainButton from './components/TrainButton'
 import { useState, useRef } from 'react'
+// Für Streaming-API
+type OllamaStreamState = {
+  loading: boolean;
+  error: string | null;
+  output: string;
+};
 
 type Alternative = {
   text: string;
@@ -16,6 +22,7 @@ function App() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false)
   const [alternatives, setAlternatives] = useState<Alternative[]>([])
+  const [ollama, setOllama] = useState<OllamaStreamState>({ loading: false, error: null, output: '' });
   const audioRecorderRef = useRef<{ cleanup: () => void } | null>(null)
 
   // Diese Funktion wird an AudioRecorder übergeben, um Recording-Status zu setzen
@@ -55,6 +62,35 @@ function App() {
     setAudioBlob(blob);
   };
 
+  // Ollama-Streaming-Handler
+  const handleOllama = async () => {
+    setOllama({ loading: true, error: null, output: '' });
+    try {
+      const response = await fetch('http://localhost:8000/ollama/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript })
+      });
+      if (!response.body) throw new Error('Keine Streaming-Antwort vom Server');
+      const reader = response.body.getReader();
+      let result = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = new TextDecoder().decode(value);
+        result += chunk;
+        setOllama((prev) => ({ ...prev, output: result }));
+      }
+      setOllama((prev) => ({ ...prev, loading: false }));
+    } catch (e: unknown) {
+      let msg = 'Fehler beim Streamen';
+      if (e && typeof e === 'object' && 'message' in e && typeof (e as { message?: string }).message === 'string') {
+        msg = (e as { message?: string }).message as string;
+      }
+      setOllama({ loading: false, error: msg, output: '' });
+    }
+  };
+
   return (
     <div className="app-card">
       <h1>Speech-to-Text Streaming Demo</h1>
@@ -72,6 +108,22 @@ function App() {
         audioBlob={audioBlob}
         alternatives={alternatives}
       />
+      {/* Ollama-Button und Stream-Ausgabe */}
+      <button
+        onClick={handleOllama}
+        disabled={isRecording || !transcript.trim() || ollama.loading}
+        style={{ minWidth: 180, marginBottom: 8 }}
+      >
+        {ollama.loading ? 'Ollama denkt...' : 'Ollama-Korrektur (asr-fixer)'}
+      </button>
+      <textarea
+        value={ollama.output}
+        readOnly
+        rows={4}
+        style={{ width: '100%', maxWidth: 420, minHeight: '4em', marginBottom: 8, background: '#f5f5f5' }}
+        placeholder="Ollama-Output erscheint hier..."
+      />
+      {ollama.error && <div style={{ color: 'red', marginBottom: 8 }}>{ollama.error}</div>}
       <TrainButton />
     </div>
   )

@@ -18,6 +18,8 @@ from pyctcdecode.alphabet import Alphabet
 from pyctcdecode.decoder import build_ctcdecoder
 import json
 from vosk import Model, KaldiRecognizer
+from fastapi.responses import StreamingResponse
+import httpx
 
 app = FastAPI()
 
@@ -166,6 +168,28 @@ def train_lm():
         return JSONResponse(content={"status": "success", "output": output})
     except Exception as e:
         return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
+
+@app.post("/ollama/stream")
+async def ollama_stream(text: str):
+    """
+    Streamt die Antwort des Ollama-Modells 'asr-fixer' auf den gegebenen Text.
+    """
+    async def stream_gen():
+        url = "http://localhost:11434/api/chat"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "model": "asr-fixer",
+            "messages": [
+                {"role": "user", "content": text}
+            ],
+            "stream": True
+        }
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("POST", url, headers=headers, json=payload) as response:
+                async for chunk in response.aiter_text():
+                    if chunk:
+                        yield chunk
+    return StreamingResponse(stream_gen(), media_type="text/plain")
 
 @app.on_event("startup")
 def startup_event():
