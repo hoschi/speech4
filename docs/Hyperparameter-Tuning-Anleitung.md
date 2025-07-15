@@ -2,6 +2,8 @@
 
 # Erstelle eine Schritt für Schritt Anleitung für meine Coding KI um das Hyperparameter-Tuning mit den Mozilla Common Voice (DE) Daten umzusetzen.
 
+https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#2
+
 Hier ist eine **Schritt-für-Schritt-Anleitung**, wie du mit Python und Hugging Face Datasets das Hyperparameter-Tuning für deinen Decoder mit Mozilla Common Voice (DE) umsetzt:
 
 ## 1. Voraussetzungen
@@ -56,8 +58,8 @@ import itertools
 import numpy as np
 
 def tune_decoder_params(validation_data, base_decoder_config, wav2vec_model):
-    alpha_range = np.arange(0.5, 2.5, 0.2)
-    beta_range = np.arange(-1.5, 1.0, 0.25)
+    alpha_range = np.arange(0, 3.0, 0.2)
+    beta_range = np.arange(-3.0, 3.0, 0.25)
     best_wer = float('inf')
     best_params = {}
 

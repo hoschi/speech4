@@ -132,8 +132,8 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
         beta_range = [1.5]
         print_info("[DEBUG] Nur ein Testlauf mit alpha=0.5, beta=1.5")
     else:
-        alpha_range = np.arange(0.5, 2.5, 0.2)
-        beta_range = np.arange(-1.5, 1.0, 0.25)
+        alpha_range = np.arange(0, 3.0, 0.2)
+        beta_range = np.arange(-3.0, 3.0, 0.25)
     best_wer = float('inf')
     best_params = {}
     print_info("[INFO] Starte Grid Search für alpha und beta ...")
