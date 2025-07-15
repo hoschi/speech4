@@ -118,6 +118,17 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
     best_wer = float('inf')
     best_params = {}
     print("[INFO] Starte Grid Search für alpha und beta ...")
+    # CSV-File für non-debug
+    csv_file = None
+    if not debug:
+        import csv
+        commit = get_git_commit_hash()
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        csv_path = os.path.join("server", "reports", "tune-decoder", f"{commit}_{now}.csv")
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        csv_file = open(csv_path, "w", encoding="utf-8", newline="")
+        writer = csv.writer(csv_file)
+        writer.writerow(["alpha", "beta", "index", "original", "erkannt", "wer"])
     for alpha, beta in itertools.product(alpha_range, beta_range):
         decoder = build_ctcdecoder(
             labels,
@@ -126,26 +137,40 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
             beta=beta
         )
         total_wer = 0
-        run_dir = os.path.join(report_dir, f"alpha_{alpha:.2f}_beta_{beta:.2f}")
-        os.makedirs(run_dir, exist_ok=True)
+        if debug:
+            run_dir = os.path.join(report_dir, f"alpha_{alpha:.2f}_beta_{beta:.2f}")
+            os.makedirs(run_dir, exist_ok=True)
         for idx, (audio, ground_truth, sampling_rate) in enumerate(validation_data):
             logits = get_logits(audio, sampling_rate)
             pred = decoder.decode(logits)
             wer_val = calculate_wer(pred, ground_truth)
             total_wer += wer_val
-            # Speichere Audio
-            audio_path = os.path.join(run_dir, f"sample_{idx:02d}.wav")
-            sf.write(audio_path, audio, sampling_rate)
-            # Speichere Text und WER
-            with open(os.path.join(run_dir, f"sample_{idx:02d}.txt"), "w", encoding="utf-8") as f:
-                f.write(f"Original: {' '.join(transform(ground_truth)[0])}\n")
-                f.write(f"Erkannt:  {' '.join(transform(pred)[0])}\n")
-                f.write(f"WER:      {wer_val:.4f}\n")
+            if debug:
+                # Speichere Audio
+                audio_path = os.path.join(run_dir, f"sample_{idx:02d}.wav")
+                sf.write(audio_path, audio, sampling_rate)
+                # Speichere Text und WER (transformiert)
+                with open(os.path.join(run_dir, f"sample_{idx:02d}.txt"), "w", encoding="utf-8") as f:
+                    f.write(f"Original: {' '.join(transform(ground_truth)[0])}\n")
+                    f.write(f"Erkannt:  {' '.join(transform(pred)[0])}\n")
+                    f.write(f"WER:      {wer_val:.4f}\n")
+            else:
+                # Schreibe Zeile in CSV (transformiert)
+                writer.writerow([
+                    f"{alpha:.2f}",
+                    f"{beta:.2f}",
+                    idx,
+                    ' '.join(transform(ground_truth)[0]),
+                    ' '.join(transform(pred)[0]),
+                    f"{wer_val:.4f}"
+                ])
         avg_wer = total_wer / len(validation_data)
         print(f"Alpha: {alpha:.2f}, Beta: {beta:.2f}, WER: {avg_wer:.3f}")
         if avg_wer < best_wer:
             best_wer = avg_wer
             best_params = {"alpha": alpha, "beta": beta}
+    if csv_file:
+        csv_file.close()
     return best_params, best_wer
 
 if __name__ == "__main__":
