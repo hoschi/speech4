@@ -7,7 +7,7 @@ peft
 pyctcdecode
 kenlm
 python-multipart 
-datasets
+datasets==3.6.0
 soundfile
 jiwer 
 librosa 

@@ -11,7 +11,7 @@ from jiwer import wer
 # --- Konfiguration ---
 MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
 LM_PATH = "server/lm/4gram_de.klm"
-N_VALIDATION = 200
+N_VALIDATION = 10
 SEED = 42
 
 # --- Modell und Processor laden ---
@@ -25,7 +25,7 @@ labels = list(processor.tokenizer.get_vocab().keys())
 
 # --- Common Voice (DE) Testdaten laden ---
 print("[INFO] Lade Common Voice (DE) Testdaten ...")
-dataset = load_dataset("mozilla-foundation/common_voice_12_0", "de", split="test")
+dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
 dataset = dataset.shuffle(seed=SEED).select(range(N_VALIDATION))
 dataset = dataset.select_columns(["audio", "sentence"])
 

@@ -123,6 +123,8 @@ python scripts/extract_oscar_german.py
 
 Mit dem Skript `server/tune_decoder.py` kannst du die optimalen KenLM-Decoder-Parameter (alpha, beta) für das deutsche wav2vec2-Modell auf Basis von Mozilla Common Voice (DE) bestimmen.
 
+Hierfür muss `datasets==3.6.0` eingestellt werden, da die v4 die Daten von Common Voice nicht unterstützt.
+
 ### Voraussetzungen
 - Python venv ist aktiviert (`source server/venv/bin/activate`)
 - Alle Abhängigkeiten sind installiert (`pip install -r server/requirements.txt`)
