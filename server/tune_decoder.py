@@ -13,13 +13,39 @@ import shutil
 import librosa
 import logging
 
-# Logging-Setup direkt nach den Imports
-log_path = os.path.join("server", "reports", "tune-decoder", "debug", "log.txt")
+# --- Logging-Setup GANZ AM ANFANG ---
+def get_git_commit_hash():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+    except Exception:
+        return "nogit"
+
+def get_report_dir(debug):
+    if debug:
+        report_dir = os.path.join("server", "reports", "tune-decoder", "debug")
+        if os.path.exists(report_dir):
+            for f in os.listdir(report_dir):
+                fp = os.path.join(report_dir, f)
+                if os.path.isfile(fp):
+                    os.remove(fp)
+                elif os.path.isdir(fp):
+                    shutil.rmtree(fp)
+        else:
+            os.makedirs(report_dir, exist_ok=True)
+        return report_dir
+    else:
+        report_dir = os.path.join("server", "reports", "tune-decoder")
+        os.makedirs(report_dir, exist_ok=True)
+        return report_dir
+
+DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+REPORT_DIR = get_report_dir(DEBUG)
+LOG_PATH = os.path.join(REPORT_DIR, "log.txt")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(log_path, mode="w", encoding="utf-8"),
+        logging.FileHandler(LOG_PATH, mode="w", encoding="utf-8"),
         logging.StreamHandler()
     ]
 )
@@ -48,7 +74,7 @@ labels = list(processor.tokenizer.get_vocab().keys())
 # --- Common Voice (DE) Testdaten laden ---
 print_info("[INFO] Lade Common Voice (DE) Testdaten ...")
 dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
-dataset = dataset.shuffle(seed=SEED).select(range(N_VALIDATION))
+dataset = dataset.select(range(N_VALIDATION))
 dataset = dataset.select_columns(["audio", "sentence"])
 
 # --- Audiodaten und Transkripte extrahieren ---
@@ -94,35 +120,6 @@ def get_logits(audio, sampling_rate):
         logits = model(input_values).logits[0]
     return logits.cpu().numpy()
 
-# --- Report-Ordner vorbereiten ---
-def get_git_commit_hash():
-    try:
-        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
-    except Exception:
-        return "nogit"
-
-def get_report_dir():
-    debug = os.environ.get("DEBUG", "false").lower() == "true"
-    if debug:
-        report_dir = os.path.join("server", "reports", "tune-decoder", "debug")
-        # Ordner leeren, falls vorhanden
-        if os.path.exists(report_dir):
-            for f in os.listdir(report_dir):
-                fp = os.path.join(report_dir, f)
-                if os.path.isfile(fp):
-                    os.remove(fp)
-                elif os.path.isdir(fp):
-                    shutil.rmtree(fp)
-        else:
-            os.makedirs(report_dir, exist_ok=True)
-        return report_dir
-    else:
-        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        commit = get_git_commit_hash()
-        report_dir = os.path.join("server", "reports", "tune-decoder", f"{commit}_{now}")
-        os.makedirs(report_dir, exist_ok=True)
-        return report_dir
-
 # --- Anpassung der tune_decoder_params Funktion ---
 def tune_decoder_params(validation_data, labels, lm_path, report_dir):
     debug = os.environ.get("DEBUG", "false").lower() == "true"
@@ -138,11 +135,12 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
     print_info("[INFO] Starte Grid Search für alpha und beta ...")
     # CSV-File für non-debug
     csv_file = None
+    all_rows = []
     if not debug:
         import csv
         commit = get_git_commit_hash()
         now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        csv_path = os.path.join("server", "reports", "tune-decoder", f"{commit}_{now}.csv")
+        csv_path = os.path.join(report_dir, f"{commit}_{now}.csv")
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
         csv_file = open(csv_path, "w", encoding="utf-8", newline="")
         writer = csv.writer(csv_file)
@@ -173,15 +171,16 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
                     f.write(f"Erkannt:  {' '.join(transform(pred)[0])}\n")
                     f.write(f"WER:      {wer_val:.4f}\n")
             else:
-                # Schreibe Zeile in CSV (transformiert)
-                writer.writerow([
+                row = [
                     f"{alpha:.2f}",
                     f"{beta:.2f}",
                     idx,
                     ' '.join(transform(ground_truth)[0]),
                     ' '.join(transform(pred)[0]),
                     f"{wer_val:.4f}"
-                ])
+                ]
+                writer.writerow(row)
+                all_rows.append(row)
         avg_wer = total_wer / len(validation_data)
         print_info(f"Alpha: {alpha:.2f}, Beta: {beta:.2f}, WER: {avg_wer:.3f}")
         if avg_wer < best_wer:
@@ -189,13 +188,22 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
             best_params = {"alpha": alpha, "beta": beta}
     if csv_file:
         csv_file.close()
+        # Schreibe best_run-Datei mit alpha/beta im Namen
+        best_alpha = f"{best_params['alpha']:.2f}"
+        best_beta = f"{best_params['beta']:.2f}"
+        best_rows = [row for row in all_rows if row[0] == best_alpha and row[1] == best_beta]
+        best_csv_path = csv_path.replace('.csv', f'_best_run_alpha_{best_alpha}_beta_{best_beta}.csv')
+        import csv
+        with open(best_csv_path, "w", encoding="utf-8", newline="") as best_file:
+            writer = csv.writer(best_file)
+            writer.writerow(["alpha", "beta", "index", "original", "erkannt", "wer"])
+            writer.writerows(best_rows)
     return best_params, best_wer
 
 if __name__ == "__main__":
     if not os.path.isfile(LM_PATH):
         print_error(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
         exit(1)
-    report_dir = get_report_dir()
-    logging.info(f"Speichere Reports unter: {report_dir}")
-    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, report_dir)
+    logging.info(f"Speichere Reports unter: {REPORT_DIR}")
+    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, REPORT_DIR)
     logging.info(f"\n[RESULT] Optimale Parameter: {best_params} Beste WER: {best_wer}") 
