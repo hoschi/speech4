@@ -132,9 +132,21 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
         beta_range = [1.5]
         print_info("[DEBUG] Nur ein Testlauf mit alpha=0.5, beta=1.5")
     else:
-        alpha_range = np.arange(0, 3.0, 0.2)
-        beta_range = np.arange(-3.0, 3.0, 0.25)
+        alpha_range = np.arange(0.5, 2.5, 0.2)
+        beta_range = np.arange(-1.5, 1.0, 0.25)
+        # too large for my computer
+        # alpha_range = np.arange(0, 3.0, 0.2)
+        # beta_range = np.arange(-3.0, 3.0, 0.25)
         print_info(f"[INFO] Teste {len(alpha_range)} alpha-Werte und {len(beta_range)} beta-Werte, insgesamt {len(alpha_range) * len(beta_range)} Kombinationen.")
+
+    # Logits für alle Audiodateien vorab berechnen und als float32 cachen
+    print_info("[INFO] Berechne und cache Logits für alle Validierungsdaten ...")
+    logits_cache = []
+    for audio, _, sampling_rate in validation_data:
+        logits = get_logits(audio, sampling_rate).astype(np.float32)
+        logits_cache.append(logits)
+
+    import gc
     best_wer = float('inf')
     best_params = {}
     print_info("[INFO] Starte Grid Search für alpha und beta ...")
@@ -161,8 +173,8 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
         if debug:
             run_dir = os.path.join(report_dir, f"alpha_{alpha:.2f}_beta_{beta:.2f}")
             os.makedirs(run_dir, exist_ok=True)
-        for idx, (audio, ground_truth, sampling_rate) in enumerate(validation_data):
-            logits = get_logits(audio, sampling_rate)
+        for idx, (_, ground_truth, _) in enumerate(validation_data):
+            logits = logits_cache[idx]  # Verwende gecachte Logits
             pred = decoder.decode(logits)
             wer_val = calculate_wer(pred, ground_truth)
             total_wer += wer_val
@@ -191,6 +203,7 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
         if avg_wer < best_wer:
             best_wer = avg_wer
             best_params = {"alpha": alpha, "beta": beta}
+        gc.collect()
     if csv_file:
         csv_file.close()
         # Schreibe best_run-Datei mit alpha/beta im Namen
