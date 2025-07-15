@@ -12,6 +12,7 @@ import subprocess
 import shutil
 import librosa
 import logging
+import argparse
 
 # --- Logging-Setup GANZ AM ANFANG ---
 def get_git_commit_hash():
@@ -38,7 +39,11 @@ def get_report_dir(debug):
         os.makedirs(report_dir, exist_ok=True)
         return report_dir
 
-DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
+# CLI-Argumente parsen
+parser = argparse.ArgumentParser(description="Tune KenLM Decoder mit Common Voice DE und Wav2Vec2")
+parser.add_argument("--debug", action="store_true", help="Debug-Modus: Nur ein (alpha, beta)-Test, ausführliche Reports im debug-Ordner")
+args = parser.parse_args()
+DEBUG = args.debug
 REPORT_DIR = get_report_dir(DEBUG)
 LOG_PATH = os.path.join(REPORT_DIR, "log.txt")
 logging.basicConfig(
@@ -121,8 +126,7 @@ def get_logits(audio, sampling_rate):
     return logits.cpu().numpy()
 
 # --- Anpassung der tune_decoder_params Funktion ---
-def tune_decoder_params(validation_data, labels, lm_path, report_dir):
-    debug = os.environ.get("DEBUG", "false").lower() == "true"
+def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
     if debug:
         alpha_range = [0.5]
         beta_range = [1.5]
@@ -205,5 +209,5 @@ if __name__ == "__main__":
         print_error(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
         exit(1)
     logging.info(f"Speichere Reports unter: {REPORT_DIR}")
-    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, REPORT_DIR)
+    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, REPORT_DIR, DEBUG)
     logging.info(f"\n[RESULT] Optimale Parameter: {best_params} Beste WER: {best_wer}") 
