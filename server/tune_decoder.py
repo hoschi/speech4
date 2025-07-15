@@ -11,6 +11,24 @@ import datetime
 import subprocess
 import shutil
 import librosa
+import logging
+
+# Logging-Setup direkt nach den Imports
+log_path = os.path.join("server", "reports", "tune-decoder", "debug", "log.txt")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(log_path, mode="w", encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
+
+def print_info(msg):
+    logging.info(msg)
+
+def print_error(msg):
+    logging.error(msg)
 
 # --- Konfiguration ---
 MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
@@ -19,7 +37,7 @@ N_VALIDATION = 10
 SEED = 42
 
 # --- Modell und Processor laden ---
-print("[INFO] Lade Wav2Vec2-Modell und Processor ...")
+print_info("[INFO] Lade Wav2Vec2-Modell und Processor ...")
 processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()
@@ -28,13 +46,13 @@ model.eval()
 labels = list(processor.tokenizer.get_vocab().keys())
 
 # --- Common Voice (DE) Testdaten laden ---
-print("[INFO] Lade Common Voice (DE) Testdaten ...")
+print_info("[INFO] Lade Common Voice (DE) Testdaten ...")
 dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
 dataset = dataset.shuffle(seed=SEED).select(range(N_VALIDATION))
 dataset = dataset.select_columns(["audio", "sentence"])
 
 # --- Audiodaten und Transkripte extrahieren ---
-print(f"[INFO] Extrahiere {N_VALIDATION} Audiodateien und Transkripte ...")
+print_info(f"[INFO] Extrahiere {N_VALIDATION} Audiodateien und Transkripte ...")
 validation_data = []
 sample_dict = dataset[:N_VALIDATION]
 num_samples = len(sample_dict["audio"])
@@ -111,13 +129,13 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
     if debug:
         alpha_range = [0.5]
         beta_range = [1.5]
-        print("[DEBUG] Nur ein Testlauf mit alpha=0.5, beta=1.5")
+        print_info("[DEBUG] Nur ein Testlauf mit alpha=0.5, beta=1.5")
     else:
         alpha_range = np.arange(0.5, 2.5, 0.2)
         beta_range = np.arange(-1.5, 1.0, 0.25)
     best_wer = float('inf')
     best_params = {}
-    print("[INFO] Starte Grid Search für alpha und beta ...")
+    print_info("[INFO] Starte Grid Search für alpha und beta ...")
     # CSV-File für non-debug
     csv_file = None
     if not debug:
@@ -165,7 +183,7 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
                     f"{wer_val:.4f}"
                 ])
         avg_wer = total_wer / len(validation_data)
-        print(f"Alpha: {alpha:.2f}, Beta: {beta:.2f}, WER: {avg_wer:.3f}")
+        print_info(f"Alpha: {alpha:.2f}, Beta: {beta:.2f}, WER: {avg_wer:.3f}")
         if avg_wer < best_wer:
             best_wer = avg_wer
             best_params = {"alpha": alpha, "beta": beta}
@@ -175,27 +193,9 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir):
 
 if __name__ == "__main__":
     if not os.path.isfile(LM_PATH):
-        print(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
+        print_error(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
         exit(1)
     report_dir = get_report_dir()
-    print(f"[INFO] Speichere Reports unter: {report_dir}")
-    # --- Logging auf Datei umleiten ---
-    import sys
-    class Tee:
-        def __init__(self, *files):
-            self.files = files
-        def write(self, obj):
-            for f in self.files:
-                f.write(obj)
-                f.flush()
-        def flush(self):
-            for f in self.files:
-                f.flush()
-    log_path = os.path.join(report_dir, "log.txt")
-    log_file = open(log_path, "w", encoding="utf-8")
-    sys.stdout = Tee(sys.stdout, log_file)
-    sys.stderr = Tee(sys.stderr, log_file)
-    # ---
+    logging.info(f"Speichere Reports unter: {report_dir}")
     best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, report_dir)
-    print("\n[RESULT] Optimale Parameter:", best_params, "Beste WER:", best_wer)
-    log_file.close() 
+    logging.info(f"\n[RESULT] Optimale Parameter: {best_params} Beste WER: {best_wer}") 
