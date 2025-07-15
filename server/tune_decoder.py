@@ -134,6 +134,7 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug):
     else:
         alpha_range = np.arange(0, 3.0, 0.2)
         beta_range = np.arange(-3.0, 3.0, 0.25)
+        print_info(f"[INFO] Teste {len(alpha_range)} alpha-Werte und {len(beta_range)} beta-Werte, insgesamt {len(alpha_range) * len(beta_range)} Kombinationen.")
     best_wer = float('inf')
     best_params = {}
     print_info("[INFO] Starte Grid Search für alpha und beta ...")
