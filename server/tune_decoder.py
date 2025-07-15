@@ -7,6 +7,9 @@ import soundfile as sf
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 from pyctcdecode.decoder import build_ctcdecoder
 from jiwer import wer
+import datetime
+import subprocess
+import shutil
 
 # --- Konfiguration ---
 MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
@@ -46,7 +49,22 @@ def get_logits(audio):
         logits = model(input_values).logits[0]
     return logits.cpu().numpy()
 
-def tune_decoder_params(validation_data, labels, lm_path):
+# --- Report-Ordner vorbereiten ---
+def get_git_commit_hash():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+    except Exception:
+        return "nogit"
+
+def get_report_dir():
+    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    commit = get_git_commit_hash()
+    report_dir = os.path.join("server", "reports", "tune-decoder", f"{commit}_{now}")
+    os.makedirs(report_dir, exist_ok=True)
+    return report_dir
+
+# --- Anpassung der tune_decoder_params Funktion ---
+def tune_decoder_params(validation_data, labels, lm_path, report_dir):
     alpha_range = np.arange(0.5, 2.5, 0.2)
     beta_range = np.arange(-1.5, 1.0, 0.25)
     best_wer = float('inf')
@@ -60,10 +78,21 @@ def tune_decoder_params(validation_data, labels, lm_path):
             beta=beta
         )
         total_wer = 0
-        for audio, ground_truth in validation_data:
+        run_dir = os.path.join(report_dir, f"alpha_{alpha:.2f}_beta_{beta:.2f}")
+        os.makedirs(run_dir, exist_ok=True)
+        for idx, (audio, ground_truth) in enumerate(validation_data):
             logits = get_logits(audio)
             pred = decoder.decode(logits)
-            total_wer += calculate_wer(pred, ground_truth)
+            wer_val = calculate_wer(pred, ground_truth)
+            total_wer += wer_val
+            # Speichere Audio
+            audio_path = os.path.join(run_dir, f"sample_{idx:02d}.wav")
+            sf.write(audio_path, audio, 16000)
+            # Speichere Text und WER
+            with open(os.path.join(run_dir, f"sample_{idx:02d}.txt"), "w", encoding="utf-8") as f:
+                f.write(f"Original: {ground_truth}\n")
+                f.write(f"Erkannt:  {pred}\n")
+                f.write(f"WER:      {wer_val:.4f}\n")
         avg_wer = total_wer / len(validation_data)
         print(f"Alpha: {alpha:.2f}, Beta: {beta:.2f}, WER: {avg_wer:.3f}")
         if avg_wer < best_wer:
@@ -75,5 +104,25 @@ if __name__ == "__main__":
     if not os.path.isfile(LM_PATH):
         print(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
         exit(1)
-    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH)
-    print("\n[RESULT] Optimale Parameter:", best_params, "Beste WER:", best_wer) 
+    report_dir = get_report_dir()
+    print(f"[INFO] Speichere Reports unter: {report_dir}")
+    # --- Logging auf Datei umleiten ---
+    import sys
+    class Tee:
+        def __init__(self, *files):
+            self.files = files
+        def write(self, obj):
+            for f in self.files:
+                f.write(obj)
+                f.flush()
+        def flush(self):
+            for f in self.files:
+                f.flush()
+    log_path = os.path.join(report_dir, "log.txt")
+    log_file = open(log_path, "w", encoding="utf-8")
+    sys.stdout = Tee(sys.stdout, log_file)
+    sys.stderr = Tee(sys.stderr, log_file)
+    # ---
+    best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, report_dir)
+    print("\n[RESULT] Optimale Parameter:", best_params, "Beste WER:", best_wer)
+    log_file.close() 

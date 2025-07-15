@@ -11,3 +11,4 @@ german_base_corpus.txt
 server/data/
 server/data/
 server/models/
+server/reports/tune-decoder/
