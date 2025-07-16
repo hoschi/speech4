@@ -103,12 +103,12 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         avg_wer = calculate_wer(predictions, ground_truths)
         
         # Diese Ausgabe kommt jetzt nur noch aus dem Worker
-        print(f"[Worker] Alpha: {alpha:.2f}, Beta: {beta:.2f}, Avg. WER: {avg_wer:.4f}")
+        print_info(f"[Worker] Alpha: {alpha:.2f}, Beta: {beta:.2f}, Avg. WER: {avg_wer:.4f}")
         return (alpha, beta, avg_wer)
 
     except Exception as e:
         # Fehler in einem Worker sollten geloggt, aber der Hauptprozess nicht beendet werden
-        print(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
+        print_info(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
         return (alpha, beta, float('inf'))
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
@@ -116,7 +116,7 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     Hauptfunktion für die Grid-Search.
     Bereitet Daten vor und startet den Multiprocessing-Pool.
     """
-    NUM_WORKERS = 4  # Anzahl der parallelen Prozesse
+    NUM_WORKERS = 1  # Anzahl der parallelen Prozesse
 
     if debug:
         alpha_range = [0.5]
