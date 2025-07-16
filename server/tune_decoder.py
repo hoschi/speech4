@@ -88,10 +88,10 @@ def get_logits(audio, sampling_rate, processor, model):
 def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
     """
     Diese Funktion wird in einem separaten Worker-Prozess ausgeführt.
-    Sie erhält die gleichbleibenden Daten (labels, lm_path etc.) über 'partial'.
     """
     alpha, beta = task_args
     try:
+        print_info(f"[Worker STARTING] Job für Alpha: {alpha:.2f}, Beta: {beta:.2f}")
         decoder = build_ctcdecoder(
             labels,
             kenlm_model_path=lm_path,
@@ -102,13 +102,11 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         predictions = [decoder.decode(logits) for logits in logits_cache]
         avg_wer = calculate_wer(predictions, ground_truths)
         
-        # Diese Ausgabe kommt jetzt nur noch aus dem Worker
-        print_info(f"[Worker] Alpha: {alpha:.2f}, Beta: {beta:.2f}, Avg. WER: {avg_wer:.4f}")
+        print_info(f"[Worker FINISHED] Job für Alpha: {alpha:.2f}, Beta: {beta:.2f}")
         return (alpha, beta, avg_wer)
 
     except Exception as e:
-        # Fehler in einem Worker sollten geloggt, aber der Hauptprozess nicht beendet werden
-        print_info(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
+        print_error(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
         return (alpha, beta, float('inf'))
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
