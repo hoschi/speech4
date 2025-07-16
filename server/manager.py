@@ -3,6 +3,7 @@ import numpy as np
 import os
 import glob
 import csv
+import sys
 
 # ==============================================================================
 # KONFIGURATION
@@ -100,37 +101,46 @@ def summarize_results():
 # ==============================================================================
 
 if __name__ == "__main__":
+    # Sofortiger Abbruch, falls progress.txt existiert
+    if os.path.exists(PROGRESS_FILE):
+        print(f"Abbruch: {PROGRESS_FILE} existiert bereits. Bitte vorher löschen, um einen neuen Durchlauf zu starten.")
+        sys.exit(1)
+
     completed_alphas = get_completed_alphas()
     all_alphas_rounded = {round(a, 2) for a in ALPHA_RANGE}
-    
     # Prüfen, ob noch Arbeit zu tun ist
     is_work_done = all_alphas_rounded.issubset(completed_alphas)
-    
-    if not is_work_done:
-        for alpha in ALPHA_RANGE:
-            alpha_rounded = round(alpha, 2)
-            if alpha_rounded in completed_alphas:
-                print(f"Überspringe bereits abgeschlossenes Alpha: {alpha_rounded}")
-                continue
+    try:
+        if not is_work_done:
+            for alpha in ALPHA_RANGE:
+                alpha_rounded = round(alpha, 2)
+                if alpha_rounded in completed_alphas:
+                    print(f"Überspringe bereits abgeschlossenes Alpha: {alpha_rounded}")
+                    continue
 
-            print(f"\n=============================================")
-            print(f"STARTE LAUF FÜR ALPHA = {alpha_rounded}")
-            print(f"=============================================")
-            
-            try:
-                command = ["python", "server/tune_decoder.py", "--alpha", str(alpha_rounded)]
-                subprocess.run(command, check=True, text=True) # text=True für bessere Ausgabe
-                mark_alpha_as_completed(alpha_rounded)
-                print(f"--> Lauf für Alpha {alpha_rounded} erfolgreich beendet.")
-
-            except subprocess.CalledProcessError as e:
-                print(f"FEHLER: Lauf für Alpha {alpha_rounded} ist fehlgeschlagen. Stoppe den Manager.")
-                break
-            except KeyboardInterrupt:
-                print("\nManager durch Benutzer unterbrochen.")
-                break
-    else:
-        print("Alle Alpha-Läufe sind bereits abgeschlossen.")
-
-    # Führe die Zusammenfassung am Ende aus, egal ob neue Läufe stattfanden oder nicht
-    summarize_results()
+                print(f"\n=============================================")
+                print(f"STARTE LAUF FÜR ALPHA = {alpha_rounded}")
+                print(f"=============================================")
+                try:
+                    command = ["python", "server/tune_decoder.py", "--alpha", str(alpha_rounded)]
+                    subprocess.run(command, check=True, text=True) # text=True für bessere Ausgabe
+                    mark_alpha_as_completed(alpha_rounded)
+                    print(f"--> Lauf für Alpha {alpha_rounded} erfolgreich beendet.")
+                except subprocess.CalledProcessError as e:
+                    print(f"FEHLER: Lauf für Alpha {alpha_rounded} ist fehlgeschlagen. Stoppe den Manager.")
+                    raise
+                except KeyboardInterrupt:
+                    print("\nManager durch Benutzer unterbrochen.")
+                    raise
+        else:
+            print("Alle Alpha-Läufe sind bereits abgeschlossen.")
+        # Führe die Zusammenfassung am Ende aus, egal ob neue Läufe stattfanden oder nicht
+        summarize_results()
+    finally:
+        # Versuche progress.txt zu löschen
+        try:
+            if os.path.exists(PROGRESS_FILE):
+                os.remove(PROGRESS_FILE)
+                print(f"{PROGRESS_FILE} wurde gelöscht.")
+        except Exception as e:
+            print(f"Warnung: Konnte {PROGRESS_FILE} nicht löschen: {e}")
