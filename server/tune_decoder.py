@@ -47,6 +47,21 @@ def get_report_dir(debug):
         os.makedirs(report_dir, exist_ok=True)
         return report_dir
 
+def setup_worker_logging(log_level):
+    """
+    Initialisiert das Logging für einen Worker-Prozess.
+    Wird einmal pro Prozess im Pool aufgerufen.
+    """
+    # JEDER Worker bekommt seine eigene Logging-Konfiguration.
+    # Wir fügen die Prozess-ID (PID) hinzu, um die Ausgaben klar zuzuordnen.
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] [Worker-PID:%(process)d] %(message)s",
+        # Wichtig: Worker sollten nur zum Stream (Konsole) loggen, um Schreibkonflikte
+        # in der zentralen Log-Datei zu vermeiden.
+        handlers=[logging.StreamHandler()]
+    )
+
 def print_info(msg):
     logging.info(msg)
 
@@ -91,7 +106,7 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
     """
     alpha, beta = task_args
     try:
-        print_info(f"[Worker STARTING] Job für Alpha: {alpha:.2f}, Beta: {beta:.2f}")
+        print_info(f"Job für Alpha: {alpha:.2f}, Beta: {beta:.2f} STARTING")        
         decoder = build_ctcdecoder(
             labels,
             kenlm_model_path=lm_path,
@@ -102,11 +117,11 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         predictions = [decoder.decode(logits) for logits in logits_cache]
         avg_wer = calculate_wer(predictions, ground_truths)
         
-        print_info(f"[Worker FINISHED] Job für Alpha: {alpha:.2f}, Beta: {beta:.2f}")
+        print_info(f"Job für Alpha: {alpha:.2f}, Beta: {beta:.2f} FINISHED")
         return (alpha, beta, avg_wer)
 
     except Exception as e:
-        print_error(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
+        print_error(f"bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
         return (alpha, beta, float('inf'))
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
@@ -144,9 +159,11 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     all_results = []
     tasks_completed = 0
 
-    # HIER IST DIE ÄNDERUNG: imap_unordered statt map
-    with ctx.Pool(processes=NUM_WORKERS) as pool:
-        # imap_unordered gibt ein Iterator-Objekt zurück, das Ergebnisse liefert, sobald sie fertig sind.
+    with ctx.Pool(
+        processes=NUM_WORKERS,
+        initializer=setup_worker_logging,
+        initargs=(logging.INFO,)  # Argumente für die Initializer-Funktion
+    ) as pool:
         results_iterator = pool.imap_unordered(worker_func, tasks)
         
         for result in results_iterator:
