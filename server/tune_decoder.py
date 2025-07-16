@@ -131,8 +131,8 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
         alpha_range = [0.5]
         beta_range = [1.5]
     else:
-        alpha_range = np.arange(0.5, 2.5, 0.2)
-        beta_range = np.arange(-1.5, 1.0, 0.25)
+        alpha_range = [0.5] # np.arange(0.2, 1, 0.1)
+        beta_range = np.arange(-1.0, 2.0, 0.25)
     
     total_tasks = len(alpha_range) * len(beta_range)
     print_info(f"[INFO] Teste {total_tasks} (alpha, beta)-Kombinationen.")
