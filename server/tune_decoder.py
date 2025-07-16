@@ -15,6 +15,7 @@ import logging
 import argparse
 import multiprocessing
 from functools import partial
+import csv
 
 # ==============================================================================
 # 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION (sicher für den Import)
@@ -126,6 +127,28 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
     NUM_WORKERS = 1
+    MAX_DURATION_SECONDS = 200  # Schwellenwert zum Ausschließen von Jobs
+    EXCLUSION_CSV_PATH = 'server/reports/tune-decoder/durations.csv' # Die Datei mit den Laufzeiten
+
+    slow_combinations = set()
+    if os.path.exists(EXCLUSION_CSV_PATH):
+        print_info(f"[INFO] Lese Ausschlussliste aus {EXCLUSION_CSV_PATH}...")
+        try:
+            with open(EXCLUSION_CSV_PATH, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader)  # Header-Zeile überspringen
+                for row in reader:
+                    alpha, beta, duration = row
+                    if float(duration) > MAX_DURATION_SECONDS:
+                        # Runden, um Fließkomma-Ungenauigkeiten zu vermeiden
+                        alpha_rounded = round(float(alpha), 2)
+                        beta_rounded = round(float(beta), 2)
+                        slow_combinations.add((alpha_rounded, beta_rounded))
+            print_info(f"--> {len(slow_combinations)} Kombinationen gefunden, die > {MAX_DURATION_SECONDS}s dauern und übersprungen werden.")
+        except Exception as e:
+            print_error(f"[WARNUNG] Konnte {EXCLUSION_CSV_PATH} nicht lesen oder parsen. Führe alle Tests aus. Fehler: {e}")
+    else:
+        print_info("[INFO] Keine Ausschlussliste (durations.csv) gefunden. Führe alle Tests aus.")
 
     if debug:
         alpha_range = [0.5]
@@ -133,15 +156,24 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     else:
         alpha_range = np.arange(0.5, 2.5, 0.2)
         beta_range = np.arange(-1.5, 1.0, 0.25)
+
+    # Erstelle zuerst alle möglichen Aufgaben
+    all_possible_tasks = list(itertools.product(alpha_range, beta_range))
     
-    total_tasks = len(alpha_range) * len(beta_range)
-    print_info(f"[INFO] Teste {total_tasks} (alpha, beta)-Kombinationen.")
+    # Filtere die Aufgaben basierend auf der Ausschlussliste
+    tasks = [
+        (alpha, beta) for alpha, beta in all_possible_tasks
+        if (round(alpha, 2), round(beta, 2)) not in slow_combinations
+    ]
+    
+    total_tasks = len(tasks)
+    skipped_tasks = len(all_possible_tasks) - total_tasks
+    
+    print_info(f"[INFO] Teste {total_tasks} (alpha, beta)-Kombinationen. ({skipped_tasks} übersprungen).")
 
     print_info("[INFO] Berechne und cache Logits für alle Validierungsdaten...")
     logits_cache = [get_logits(audio, sr, processor, model).astype(np.float32) for audio, _, sr in validation_data]
     ground_truths = [text for _, text, _ in validation_data]
-
-    tasks = list(itertools.product(alpha_range, beta_range))
 
     worker_func = partial(
         evaluate_params,
@@ -162,7 +194,7 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     with ctx.Pool(
         processes=NUM_WORKERS,
         initializer=setup_worker_logging,
-        initargs=(logging.INFO,)  # Argumente für die Initializer-Funktion
+        initargs=(logging.INFO,)
     ) as pool:
         results_iterator = pool.imap_unordered(worker_func, tasks)
         
@@ -170,7 +202,6 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
             tasks_completed += 1
             alpha, beta, avg_wer = result
             
-            # Sofortiges Logging des Fortschritts im Hauptprozess
             print_info(f"({tasks_completed}/{total_tasks}) Ergebnis erhalten für Alpha: {alpha:.2f}, Beta: {beta:.2f} -> Avg. WER: {avg_wer:.4f}")
 
             all_results.append([f"{alpha:.2f}", f"{beta:.2f}", f"{avg_wer:.4f}"])
@@ -180,7 +211,6 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
                 best_params = {"alpha": alpha, "beta": beta}
 
     print_info("[INFO] Grid Search abgeschlossen.")
-    # Der Rest der Funktion (Report-Erstellung) kann wie bisher folgen.
 
     return best_params, best_wer
 
