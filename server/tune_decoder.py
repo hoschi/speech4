@@ -93,7 +93,7 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
     NUM_WORKERS = 1  # Wichtig für deinen PC
 
     beta_range = np.arange(-1.0, 2.0, 0.25)  # müssen unter 16 sein!!!!
-    
+
     tasks = [(target_alpha, beta) for beta in beta_range]
     total_tasks = len(tasks)
     print_info(f"Teste {total_tasks} Beta-Werte für Alpha = {target_alpha}.")
@@ -103,12 +103,12 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
     ground_truths = [text for _, text, _ in validation_data]
 
     worker_func = partial(evaluate_params, labels=labels, lm_path=lm_path, logits_cache=logits_cache, ground_truths=ground_truths)
-    
+
     ctx = multiprocessing.get_context('spawn')
     print_info(f"Starte Grid Search mit einem Pool von {NUM_WORKERS} Prozess(en)...")
 
     alpha_run_results = []
-    
+
     with ctx.Pool(processes=NUM_WORKERS, initializer=setup_worker_logging, initargs=(logging.INFO,)) as pool:
         results_iterator = pool.imap_unordered(worker_func, tasks)
         for result in results_iterator:
@@ -120,12 +120,12 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
     commit = get_git_commit_hash()
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     csv_path = os.path.join(report_dir, f"{commit}_{now}_alpha_{target_alpha:.2f}.csv")
-    
+
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["alpha", "beta", "durchschnittliche_wer"])
         writer.writerows(alpha_run_results)
-        
+
     print_info(f"Ergebnisse für Alpha {target_alpha} gespeichert in: {csv_path}")
 
 
@@ -151,11 +151,11 @@ if __name__ == "__main__":
             logging.StreamHandler()
         ]
     )
-    
+
     # --- Konfiguration ---
     MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
     LM_PATH = "server/lm/4gram_de.klm"
-    N_VALIDATION = 10
+    N_VALIDATION = 4000
     SEED = 42
 
     if not os.path.isfile(LM_PATH):
@@ -187,5 +187,5 @@ if __name__ == "__main__":
 
     # Aufruf der Hauptlogik
     tune_for_single_alpha(validation_data, labels, LM_PATH, REPORT_DIR, TARGET_ALPHA, processor, model)
-    
+
     print_info(f"\n[SUCCESS] Lauf für Alpha {TARGET_ALPHA} beendet.")
