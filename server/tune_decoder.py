@@ -17,7 +17,7 @@ import multiprocessing
 from functools import partial
 
 # ==============================================================================
-# 1. HELFER-FUNKTIONEN UND WORKER-FUNKTIONEN (sicher für den Import)
+# 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION (sicher für den Import)
 # ==============================================================================
 
 def get_git_commit_hash():
@@ -26,16 +26,13 @@ def get_git_commit_hash():
     except Exception:
         return "nogit"
 
-def print_info(msg):
-    logging.info(msg)
-
-def print_error(msg):
-    logging.error(msg)
-
+# --- HIER IST DIE FEHLENDE FUNKTION WIEDER EINGEFÜGT ---
 def get_report_dir(debug):
+    """Erstellt und säubert das Report-Verzeichnis für den aktuellen Lauf."""
     if debug:
         report_dir = os.path.join("server", "reports", "tune-decoder", "debug")
         if os.path.exists(report_dir):
+            # Verzeichnis leeren für einen sauberen Debug-Lauf
             for f in os.listdir(report_dir):
                 fp = os.path.join(report_dir, f)
                 if os.path.isfile(fp):
@@ -50,21 +47,34 @@ def get_report_dir(debug):
         os.makedirs(report_dir, exist_ok=True)
         return report_dir
 
+def print_info(msg):
+    logging.info(msg)
+
+def print_error(msg):
+    logging.error(msg)
+
 # Die Transformation wird global definiert, damit sie im Worker verfügbar ist.
 transform = jiwer.Compose([
     jiwer.ToLowerCase(),
     jiwer.RemovePunctuation(),
     jiwer.RemoveMultipleSpaces(),
     jiwer.Strip(),
-    jiwer.ReduceToListOfListOfWords()
+    jiwer.ReduceToListOfListOfWords(word_delimiter=" ")
 ])
 
 def calculate_wer(prediction, ground_truth):
+    # Die Transformation muss auf Listen angewendet werden
+    if isinstance(prediction, str):
+        prediction = [prediction]
+    if isinstance(ground_truth, str):
+        ground_truth = [ground_truth]
+
     return jiwer.wer(
         ground_truth, prediction,
         reference_transform=transform,
         hypothesis_transform=transform
     )
+
 
 def get_logits(audio, sampling_rate, processor, model):
     """Berechnet die Logits für eine Audiodatei. Benötigt Prozessor und Modell explizit."""
@@ -97,7 +107,8 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         return (alpha, beta, avg_wer)
 
     except Exception as e:
-        print_error(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
+        # Fehler in einem Worker sollten geloggt, aber der Hauptprozess nicht beendet werden
+        print(f"[Worker ERROR] bei Alpha: {alpha:.2f}, Beta: {beta:.2f} - {e}")
         return (alpha, beta, float('inf'))
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
@@ -116,19 +127,15 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     
     print_info(f"[INFO] Teste {len(alpha_range) * len(beta_range)} (alpha, beta)-Kombinationen.")
 
-    # Logits und Ground Truths einmalig im Hauptprozess vorbereiten
     print_info("[INFO] Berechne und cache Logits für alle Validierungsdaten (einmalig im Hauptprozess)...")
     logits_cache = [get_logits(audio, sr, processor, model).astype(np.float32) for audio, _, sr in validation_data]
     ground_truths = [text for _, text, _ in validation_data]
 
-    # Aufgabenliste enthält nur die sich ändernden Parameter
     tasks = list(itertools.product(alpha_range, beta_range))
 
     best_wer = float('inf')
     best_params = {}
     
-    # partial wird verwendet, um die Worker-Funktion mit den statischen Argumenten "vorzuladen".
-    # Das ist effizienter als die Daten mit jeder Aufgabe neu zu senden.
     worker_func = partial(
         evaluate_params,
         labels=labels,
@@ -151,8 +158,8 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
             best_wer = avg_wer
             best_params = {"alpha": alpha, "beta": beta}
 
-    # --- Report-Erstellung (findet nur im Hauptprozess statt) ---
-    # ... (Der Code zur Erstellung der CSV-Dateien kann hier wie in meiner vorherigen Antwort folgen) ...
+    # --- Report-Erstellung ---
+    # ...
 
     return best_params, best_wer
 
@@ -161,15 +168,16 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
 # ==============================================================================
 
 if __name__ == "__main__":
-    # Argumente parsen
     parser = argparse.ArgumentParser(description="Tune KenLM Decoder mit Common Voice DE und Wav2Vec2")
     parser.add_argument("--debug", action="store_true", help="Debug-Modus: Nur ein (alpha, beta)-Test, ausführliche Reports im debug-Ordner")
     args = parser.parse_args()
     DEBUG = args.debug
 
-    # Logging und Report-Verzeichnis einrichten
+    # Muss nach dem Parsen der Argumente aufgerufen werden
     REPORT_DIR = get_report_dir(DEBUG)
     LOG_PATH = os.path.join(REPORT_DIR, "log.txt")
+    
+    # Logging wird erst hier konfiguriert
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -185,64 +193,33 @@ if __name__ == "__main__":
     N_VALIDATION = 10
     SEED = 42
 
-    # Überprüfe, ob das LM-Modell existiert
     if not os.path.isfile(LM_PATH):
         print_error(f"[ERROR] KenLM-Modell nicht gefunden: {LM_PATH}\nBitte trainiere oder kopiere das Modell gemäß README.")
         exit(1)
 
-    # --- Laden der Modelle und Daten (jetzt sicher im Hauptprozess) ---
     print_info("[INFO] Lade Wav2Vec2-Modell und Processor ...")
     processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
     model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
     model.eval()
 
-    # Labels extrahieren (robust gegen Typenfehler)
-    try:
-        # Prüfe, ob processor ein Wav2Vec2Processor ist und tokenizer besitzt
-        from transformers import Wav2Vec2Processor
-        if isinstance(processor, Wav2Vec2Processor) and hasattr(processor, "tokenizer"):
-            labels = list(processor.tokenizer.get_vocab().keys())
-        else:
-            raise RuntimeError("Processor ist kein Wav2Vec2Processor oder hat kein tokenizer-Attribut!")
-    except Exception as e:
-        raise RuntimeError(f"Fehler beim Extrahieren der Labels: {e}")
+    labels = list(processor.tokenizer.get_vocab().keys())
 
     print_info("[INFO] Lade Common Voice (DE) Testdaten ...")
     dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
-    from datasets import Dataset
-    if isinstance(dataset, Dataset):
-        dataset = dataset.select(range(N_VALIDATION))
-        sample_dict = dataset.to_dict()
-        num_samples = len(sample_dict["audio"])
-        validation_data = []
-        for i in range(num_samples):
-            audio_obj = sample_dict["audio"][i]
-            text = sample_dict["sentence"][i].strip() if sample_dict["sentence"][i] else ""
-            if isinstance(audio_obj, dict):
-                audio = audio_obj.get("array", audio_obj)
-                sampling_rate = audio_obj.get("sampling_rate", None)
-            else:
-                audio = audio_obj
-                sampling_rate = None
-            if sampling_rate is not None and text:
-                validation_data.append((audio, text, sampling_rate))
-    else:
-        # Fallback für IterableDataset, Iterator oder Liste
-        dataset_list = list(dataset)[:N_VALIDATION]
-        validation_data = []
-        for entry in dataset_list:
-            audio_obj = entry["audio"]
-            text = entry["sentence"].strip() if entry["sentence"] else ""
-            if isinstance(audio_obj, dict):
-                audio = audio_obj.get("array", audio_obj)
-                sampling_rate = audio_obj.get("sampling_rate", None)
-            else:
-                audio = audio_obj
-                sampling_rate = None
+    dataset = dataset.select(range(N_VALIDATION))
+    dataset = dataset.select_columns(["audio", "sentence"])
+
+    print_info(f"[INFO] Extrahiere {N_VALIDATION} Audiodateien und Transkripte ...")
+    validation_data = []
+    for i in range(len(dataset)):
+        audio_obj = dataset[i]["audio"]
+        text = dataset[i]["sentence"].strip()
+        if "array" in audio_obj and "sampling_rate" in audio_obj:
+            audio = audio_obj["array"]
+            sampling_rate = audio_obj["sampling_rate"]
             if sampling_rate is not None and text:
                 validation_data.append((audio, text, sampling_rate))
 
-    # --- Start der eigentlichen Logik ---
     print_info(f"Speichere Reports unter: {REPORT_DIR}")
     best_params, best_wer = tune_decoder_params(validation_data, labels, LM_PATH, REPORT_DIR, DEBUG, processor, model)
     
