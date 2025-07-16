@@ -112,11 +112,7 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         return (alpha, beta, float('inf'))
 
 def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, processor, model):
-    """
-    Hauptfunktion für die Grid-Search.
-    Bereitet Daten vor und startet den Multiprocessing-Pool.
-    """
-    NUM_WORKERS = 1  # Anzahl der parallelen Prozesse
+    NUM_WORKERS = 1
 
     if debug:
         alpha_range = [0.5]
@@ -125,17 +121,15 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
         alpha_range = np.arange(0.5, 2.5, 0.2)
         beta_range = np.arange(-1.5, 1.0, 0.25)
     
-    print_info(f"[INFO] Teste {len(alpha_range) * len(beta_range)} (alpha, beta)-Kombinationen.")
+    total_tasks = len(alpha_range) * len(beta_range)
+    print_info(f"[INFO] Teste {total_tasks} (alpha, beta)-Kombinationen.")
 
-    print_info("[INFO] Berechne und cache Logits für alle Validierungsdaten (einmalig im Hauptprozess)...")
+    print_info("[INFO] Berechne und cache Logits für alle Validierungsdaten...")
     logits_cache = [get_logits(audio, sr, processor, model).astype(np.float32) for audio, _, sr in validation_data]
     ground_truths = [text for _, text, _ in validation_data]
 
     tasks = list(itertools.product(alpha_range, beta_range))
 
-    best_wer = float('inf')
-    best_params = {}
-    
     worker_func = partial(
         evaluate_params,
         labels=labels,
@@ -147,19 +141,31 @@ def tune_decoder_params(validation_data, labels, lm_path, report_dir, debug, pro
     ctx = multiprocessing.get_context('spawn')
     print_info(f"[INFO] Starte Grid Search mit einem Pool von {NUM_WORKERS} Prozessen...")
 
-    with ctx.Pool(processes=NUM_WORKERS) as pool:
-        results = pool.map(worker_func, tasks)
-
-    print_info("[INFO] Grid Search abgeschlossen. Werte Ergebnisse aus...")
+    best_wer = float('inf')
+    best_params = {}
     all_results = []
-    for alpha, beta, avg_wer in results:
-        all_results.append([f"{alpha:.2f}", f"{beta:.2f}", f"{avg_wer:.4f}"])
-        if avg_wer < best_wer:
-            best_wer = avg_wer
-            best_params = {"alpha": alpha, "beta": beta}
+    tasks_completed = 0
 
-    # --- Report-Erstellung ---
-    # ...
+    # HIER IST DIE ÄNDERUNG: imap_unordered statt map
+    with ctx.Pool(processes=NUM_WORKERS) as pool:
+        # imap_unordered gibt ein Iterator-Objekt zurück, das Ergebnisse liefert, sobald sie fertig sind.
+        results_iterator = pool.imap_unordered(worker_func, tasks)
+        
+        for result in results_iterator:
+            tasks_completed += 1
+            alpha, beta, avg_wer = result
+            
+            # Sofortiges Logging des Fortschritts im Hauptprozess
+            print_info(f"({tasks_completed}/{total_tasks}) Ergebnis erhalten für Alpha: {alpha:.2f}, Beta: {beta:.2f} -> Avg. WER: {avg_wer:.4f}")
+
+            all_results.append([f"{alpha:.2f}", f"{beta:.2f}", f"{avg_wer:.4f}"])
+            if avg_wer < best_wer:
+                print_info(f"Neuer bester WER gefunden: {avg_wer:.4f}")
+                best_wer = avg_wer
+                best_params = {"alpha": alpha, "beta": beta}
+
+    print_info("[INFO] Grid Search abgeschlossen.")
+    # Der Rest der Funktion (Report-Erstellung) kann wie bisher folgen.
 
     return best_params, best_wer
 
