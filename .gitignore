@@ -13,3 +13,4 @@ server/data/
 server/models/
 server/reports/tune-decoder/
 *.log
+progress.txt
