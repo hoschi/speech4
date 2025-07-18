@@ -73,7 +73,28 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
     - [x] **Dokumentation & Referenzen:**
         - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
     - [x] Modellerstellung muss Hauptthread blockieren, ohne Modell macht es keinen Sinn das System zu benutzen: `threading.Thread(target=ensure_initial_kenlm, daemon=True).start()`
-- [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) `tune_decoder`
+
+### 2. Kritische Verbesserungen
+
+https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#0
+
+- [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) tune_decoder
+- [x] Neues Model
+    - Ergebnis für "facebook/wav2vec2-large-xlsr-53-german"
+        - Das waren auf jeden Fall 4000 Beispielen und 170 Kombinationen
+        - Beste Alpha: 0.20
+        - Beste Beta:  -1.00
+        - Beste avg. WER: 0.2044
+    - wav2vec2-S ist nicht verfügbar?
+        - Sagt er hier https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#8
+    - habe gemini-cli gefragt und das hat ein anderes verfügbares gefunden
+        - siehe `docs/2025-07-18-better-audio-modell.md`
+        - [x] eine Kombination dauert: 3095s. Bei 170 Kombinationen kann man in 13h 356 Beispiele berechnen
+        - [ ] decoder tune run um WER zu vergleichen
+    - wav2vec2-S ist nicht verfügbar ist falsch, ich hab das gefunden:
+        - [biaofuxmu/wav2vec-S: Code for ACL 2024 findings paper "wav2vec-S: Adapting Pre-trained Speech Models for Streaming"](https://github.com/biaofuxmu/wav2vec-S)
+        - [biaofu-xmu/wav2vec-S-Large-ft-960h · Hugging Face](https://huggingface.co/biaofu-xmu/wav2vec-S-Large-ft-960h)
+        - [ ] decoder tune run um WER zu vergleichen
 
 ### 3. Genauere Wortgrenzen und Alignment
 - [ ] **Forced Alignment auf CTC-Logits:**
@@ -190,8 +211,6 @@ Wird aktuell von LLM über Olama gefixed.
 - [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
 - [ ] **Real-Time Encoder State Revision:**
     - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
-- [ ] Modell `wav2vec2-xls-r-1B-german` verwenden statt facebook/wav2vec2-large-xlsr-53-german
-- [ ] Integration von `wav2vec-S` für optimierte Streaming-Inferenz
 
 # Regeln für die Coding-KI
 
