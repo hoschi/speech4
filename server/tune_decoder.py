@@ -83,10 +83,10 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         predictions = [decoder.decode(logits) for logits in logits_cache]
         avg_wer = calculate_wer(predictions, ground_truths)
         print_info(f"Job für Beta: {beta:.2f} FINISHED")
-        return (alpha, beta, avg_wer)
+        return (alpha, beta, avg_wer, predictions)
     except Exception as e:
         print_error(f"bei Beta: {beta:.2f} - {e}")
-        return (alpha, beta, float('inf'))
+        return (alpha, beta, float('inf'), [])
 
 def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_alpha, processor, model, best_wer_so_far=None):
     """Führt die Grid Search für einen einzelnen Alpha-Wert und alle Beta-Werte durch."""
@@ -116,23 +116,20 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
     with ctx.Pool(processes=NUM_WORKERS, initializer=setup_worker_logging, initargs=(logging.INFO,)) as pool:
         results_iterator = pool.imap_unordered(worker_func, tasks)
         for result in results_iterator:
-            alpha, beta, avg_wer = result
+            alpha, beta, avg_wer, predictions = result
             print_info(f"Ergebnis für Beta: {beta:.2f} -> Avg. WER: {avg_wer:.4f}")
             alpha_run_results.append([f"{alpha:.2f}", f"{beta:.2f}", f"{avg_wer:.4f}"])
             # Prüfe, ob dieser Beta-Lauf der beste ist
             if (best_wer is None) or (avg_wer < best_wer):
-                # Berechne Predictions für diesen Beta-Lauf
-                decoder = build_ctcdecoder(labels, kenlm_model_path=lm_path, alpha=alpha, beta=beta)
-                predictions = [decoder.decode(logits) for logits in logits_cache]
                 # Schreibe best_run.csv, wenn besser als best_wer_so_far (oder wenn keiner übergeben)
                 if (best_wer_so_far is None) or (avg_wer < best_wer_so_far):
                     best_run_path = os.path.join(report_dir, f"{commit}_best_run.csv")
                     with open(best_run_path, "w", encoding="utf-8", newline="") as f:
                         writer = csv.writer(f)
-                        writer.writerow(["index", "wer", "original text", "erkannter text", "alpha", "beta"])
-                        for idx2, (orig, pred) in enumerate(zip(ground_truths, predictions)):
+                        writer.writerow(["index", "wer", "original", "erkannt", "alpha", "beta"])
+                        for idx, (orig, pred) in enumerate(zip(ground_truths, predictions)):
                             wer_val = calculate_wer(pred, orig)
-                            writer.writerow([idx2, f"{wer_val:.4f}", orig, pred, f"{target_alpha:.2f}", f"{beta:.2f}"])
+                            writer.writerow([idx, f"{wer_val:.4f}", orig, pred, f"{target_alpha:.2f}", f"{beta:.2f}"])
                         # Schreibe den durchschnittlichen WER als letzte Zeile
                         writer.writerow(["avg", f"{avg_wer:.4f}", '', '', f"{target_alpha:.2f}", f"{beta:.2f}"])
                     print_info(f"Best Run gespeichert unter: {best_run_path} (WER: {avg_wer:.4f})")
