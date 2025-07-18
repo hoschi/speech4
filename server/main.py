@@ -8,7 +8,7 @@ import datetime
 import json
 
 # Importiere die zentrale ASR-Modell-Klasse und Initialisierungsfunktionen
-from server.asr_model import ASRModel, ensure_kenlm_model, train_kenlm_pipeline
+from asr_model import ASRModel, ensure_kenlm_model, train_kenlm_pipeline
 
 app = FastAPI()
 

@@ -54,8 +54,11 @@ pip install ./kenlm
 ### 5. Server starten
 ```bash
 source server/venv/bin/activate
-python server/main.py
+python -m server.main
 ```
+
+**Hinweis:**
+Starte das Backend immer mit `python -m server.main` (nicht mit `python server/main.py`), damit Python die Imports korrekt auflöst. Andernfalls kommt es zu `ModuleNotFoundError: No module named 'server'`.
 
 ## KenLM-Binaries für Training verfügbar machen
 

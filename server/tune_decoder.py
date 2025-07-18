@@ -13,7 +13,7 @@ from functools import partial
 import csv
 
 # Importiere die zentrale ASR-Modell-Klasse und Konstanten
-from server.asr_model import ASRModel, LM_PATH, MODEL_NAME
+from asr_model import ASRModel, LM_PATH, MODEL_NAME
 
 # ==============================================================================
 # 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION
