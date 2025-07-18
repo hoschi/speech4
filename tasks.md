@@ -79,18 +79,7 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
 https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#0
 
 - [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) `tune_decoder`
-- [ ] Modell `wav2vec-S` verwenden statt facebook/wav2vec2-large-xlsr-53-german für optimierte Streaming-Inferenz
-    - [ ] Modellquelle recherchieren und Verfügbarkeit prüfen (HuggingFace, eigene Ressourcen, Deutsch vorhanden?)
-    - [ ] Kompatibilität und API prüfen (Architektur, CTC, Streaming-Support)
-    - [ ] Modell und Tokenizer herunterladen und lokal bereitstellen (`server/models/`)
-    - [ ] Backend-Lade-Logik anpassen, sodass `wav2vec-S` geladen wird (z.B. in `main.py` oder `manager.py`)
-    - [ ] Modell-spezifische Parameter (Samplingrate, Tokenizer etc.) prüfen und ggf. anpassen
-    - [ ] Streaming-Inferenz-Logik und CTC-Decoding auf Kompatibilität testen und ggf. anpassen
-    - [ ] Smoke-Test: Server starten, Test-Inferenz durchführen, Modell lädt und liefert Transkripte
-    - [ ] Vergleichstest: Latenz, Speicherverbrauch und Qualität mit altem Modell vergleichen
-    - [ ] Optional: Fallback-Mechanismus auf altes Modell implementieren
-    - [ ] README und Setup-Anleitung aktualisieren (Modellwechsel, Besonderheiten, neue Abhängigkeiten)
-    - [ ] Aufgabe als erledigt markieren, sobald alle Tests bestanden sind und ggf. Folgeaufgaben unter "Discovered During Work" notieren
+
 
 ### 3. Genauere Wortgrenzen und Alignment
 - [ ] **Forced Alignment auf CTC-Logits:**

@@ -20,7 +20,7 @@ import json
 app = FastAPI()
 
 # Modell und Processor beim Start laden
-MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
+MODEL_NAME = "jonatasgrosman/wav2vec2-xls-r-1b-german"
 processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()

@@ -174,7 +174,7 @@ if __name__ == "__main__":
     )
 
     # --- Konfiguration ---
-    MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
+    MODEL_NAME = "aware-ai/wav2vec2-base-german"
     LM_PATH = "server/lm/4gram_de.klm"
     N_VALIDATION = 4000
     SEED = 42
