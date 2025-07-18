@@ -17,6 +17,12 @@ REPORT_DIR = os.path.join("server", "reports", "tune-decoder")
 # HELFER-FUNKTIONEN
 # ==============================================================================
 
+def get_git_commit_hash():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+    except Exception:
+        return "nogit"
+
 def get_completed_alphas():
     """Liest die bereits abgeschlossenen Alpha-Werte aus der Fortschrittsdatei."""
     if not os.path.exists(PROGRESS_FILE):
@@ -84,7 +90,8 @@ def summarize_results():
     print(f"Beste avg. WER: {best_wer:.4f}")
     
     # 4. Schreibe die finale, zusammengefasste CSV-Datei
-    summary_path = os.path.join(REPORT_DIR, 'final_summary.csv')
+    commit = get_git_commit_hash()
+    summary_path = os.path.join(REPORT_DIR, f'final_summary_{commit}.csv')
     try:
         with open(summary_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
