@@ -53,8 +53,8 @@ def init_kenlm_decoder(app):
     app.state.decoder = build_ctcdecoder(
         labels,
         kenlm_model_path=LM_PATH,
-        alpha=0.5,  # optional, anpassbar
-        beta=1.0    # optional, anpassbar
+        alpha=0.2,  # optional, anpassbar
+        beta=-1.0    # optional, anpassbar
     )
     print(f"[INFO] KenLM Decoder geladen: {LM_PATH}")
 
