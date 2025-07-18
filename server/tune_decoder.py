@@ -3,22 +3,20 @@ import numpy as np
 import itertools
 from datasets import load_dataset
 import torch
-import soundfile as sf
-from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
-from pyctcdecode.decoder import build_ctcdecoder
 import jiwer
 import datetime
 import subprocess
-import shutil
-import librosa
 import logging
 import argparse
 import multiprocessing
 from functools import partial
 import csv
 
+# Importiere die zentrale ASR-Modell-Klasse und Konstanten
+from server.asr_model import ASRModel, LM_PATH, MODEL_NAME
+
 # ==============================================================================
-# 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION (sicher für den Import)
+# 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION
 # ==============================================================================
 
 def get_git_commit_hash():
@@ -26,12 +24,6 @@ def get_git_commit_hash():
         return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
     except Exception:
         return "nogit"
-
-def get_report_dir():
-    """Erstellt das Report-Verzeichnis, falls nicht vorhanden."""
-    report_dir = os.path.join("server", "reports", "tune-decoder")
-    os.makedirs(report_dir, exist_ok=True)
-    return report_dir
 
 def setup_worker_logging(log_level):
     """Initialisiert das Logging für einen Worker-Prozess."""
@@ -65,18 +57,15 @@ def calculate_wer(prediction, ground_truth):
         hypothesis_transform=transform
     )
 
-def get_logits(audio, sampling_rate, processor, model):
-    """Berechnet die Logits für eine Audiodatei."""
-    if sampling_rate != 16000:
-        audio = librosa.resample(audio, orig_sr=sampling_rate, target_sr=16000)
-    input_values = processor(audio, sampling_rate=16000, return_tensors="pt", padding=True).input_values
-    with torch.no_grad():
-        logits = model(input_values).logits[0]
-    return logits.cpu().numpy()
-
 def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
-    """Wird im Worker-Prozess für jede (alpha, beta)-Kombination ausgeführt."""
+    """
+    Wird im Worker-Prozess für jede (alpha, beta)-Kombination ausgeführt.
+    Baut den Decoder on-the-fly, um Serialisierungsprobleme zu vermeiden.
+    """
     alpha, beta = task_args
+    # Importiere die Decoder-Funktion hier, da sie im Worker-Kontext benötigt wird.
+    from pyctcdecode.decoder import build_ctcdecoder
+    
     try:
         print_info(f"Job für Beta: {beta:.2f} STARTING")
         decoder = build_ctcdecoder(labels, kenlm_model_path=lm_path, alpha=alpha, beta=beta)
@@ -85,31 +74,35 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
         print_info(f"Job für Beta: {beta:.2f} FINISHED")
         return (alpha, beta, avg_wer, predictions)
     except Exception as e:
-        print_error(f"bei Beta: {beta:.2f} - {e}")
+        print_error(f"Fehler bei Beta: {beta:.2f} - {e}")
         return (alpha, beta, float('inf'), [])
 
-def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_alpha, processor, model, best_wer_so_far=None):
+def tune_for_single_alpha(validation_data, asr_model, report_dir, target_alpha, best_wer_so_far=None):
     """Führt die Grid Search für einen einzelnen Alpha-Wert und alle Beta-Werte durch."""
-    NUM_WORKERS = 1  # Wichtig für deinen PC
-
-    beta_range = [-1] # np.arange(-1.0, 2.0, 0.25)  # müssen unter 16 sein!!!!
+    NUM_WORKERS = 1  # Für lokale Ausführung
+    beta_range = np.arange(-2.0, 2.1, 0.25)
 
     tasks = [(target_alpha, beta) for beta in beta_range]
     total_tasks = len(tasks)
     print_info(f"Teste {total_tasks} Beta-Werte für Alpha = {target_alpha}.")
 
-    print_info("Berechne und cache Logits für alle Validierungsdaten (nur einmal pro Alpha-Lauf)...")
-    logits_cache = [get_logits(audio, sr, processor, model).astype(np.float32) for audio, _, sr in validation_data]
+    print_info("Berechne und cache Logits für alle Validierungsdaten...")
+    logits_cache = [asr_model.get_logits(audio, sr).astype(np.float32) for audio, _, sr in validation_data]
     ground_truths = [text for _, text, _ in validation_data]
 
-    worker_func = partial(evaluate_params, labels=labels, lm_path=lm_path, logits_cache=logits_cache, ground_truths=ground_truths)
+    # Bereite die Argumente für den Worker vor
+    worker_func = partial(evaluate_params, 
+                          labels=asr_model.labels, 
+                          lm_path=LM_PATH, 
+                          logits_cache=logits_cache, 
+                          ground_truths=ground_truths)
 
     ctx = multiprocessing.get_context('spawn')
     print_info(f"Starte Grid Search mit einem Pool von {NUM_WORKERS} Prozess(en)...")
 
     alpha_run_results = []
-    best_wer = None
-
+    best_wer_for_alpha = float('inf')
+    
     commit = get_git_commit_hash()
     now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 
@@ -117,33 +110,32 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
         results_iterator = pool.imap_unordered(worker_func, tasks)
         for result in results_iterator:
             alpha, beta, avg_wer, predictions = result
+            if avg_wer == float('inf'):
+                continue
+
             print_info(f"Ergebnis für Beta: {beta:.2f} -> Avg. WER: {avg_wer:.4f}")
             alpha_run_results.append([f"{alpha:.2f}", f"{beta:.2f}", f"{avg_wer:.4f}"])
-            # Prüfe, ob dieser Beta-Lauf der beste ist
-            if (best_wer is None) or (avg_wer < best_wer):
-                # Schreibe best_run.csv, wenn besser als best_wer_so_far (oder wenn keiner übergeben)
-                if (best_wer_so_far is None) or (avg_wer < best_wer_so_far):
-                    best_run_path = os.path.join(report_dir, f"{commit}_best_run.csv")
-                    with open(best_run_path, "w", encoding="utf-8", newline="") as f:
-                        writer = csv.writer(f)
-                        writer.writerow(["index", "wer", "original", "erkannt", "alpha", "beta"])
-                        for idx, (orig, pred) in enumerate(zip(ground_truths, predictions)):
-                            wer_val = calculate_wer(pred, orig)
-                            writer.writerow([idx, f"{wer_val:.4f}", orig, pred, f"{target_alpha:.2f}", f"{beta:.2f}"])
-                        # Schreibe den durchschnittlichen WER als letzte Zeile
-                        writer.writerow(["avg", f"{avg_wer:.4f}", '', '', f"{target_alpha:.2f}", f"{beta:.2f}"])
-                    print_info(f"Best Run gespeichert unter: {best_run_path} (WER: {avg_wer:.4f})")
-                best_wer = avg_wer
 
-    # Schreibe das Ergebnis für diesen Alpha-Lauf in eine eigene CSV-Datei
-    commit = get_git_commit_hash()
-    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+            # Prüfe, ob dieser Lauf der bisher beste ist
+            is_best_so_far = (best_wer_so_far is None) or (avg_wer < best_wer_so_far)
+            if avg_wer < best_wer_for_alpha and is_best_so_far:
+                best_run_path = os.path.join(report_dir, f"{commit}_best_run.csv")
+                with open(best_run_path, "w", encoding="utf-8", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["index", "wer", "original", "erkannt", "alpha", "beta"])
+                    for idx, (orig, pred) in enumerate(zip(ground_truths, predictions)):
+                        wer_val = calculate_wer(pred, orig)
+                        writer.writerow([idx, f"{wer_val:.4f}", orig, pred, f"{target_alpha:.2f}", f"{beta:.2f}"])
+                    writer.writerow(["avg", f"{avg_wer:.4f}", '', '', f"{target_alpha:.2f}", f"{beta:.2f}"])
+                print_info(f"Neuer bester Lauf gespeichert: {best_run_path} (WER: {avg_wer:.4f})")
+                best_wer_for_alpha = avg_wer
+
+    # Schreibe die Ergebnisse für diesen Alpha-Lauf
     csv_path = os.path.join(report_dir, f"{commit}_{now}_alpha_{target_alpha:.2f}.csv")
-
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["alpha", "beta", "durchschnittliche_wer"])
-        writer.writerows(alpha_run_results)
+        writer.writerows(sorted(alpha_run_results, key=lambda r: float(r[2])))
 
     print_info(f"Ergebnisse für Alpha {target_alpha} gespeichert in: {csv_path}")
 
@@ -156,13 +148,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tune KenLM Decoder für einen einzelnen Alpha-Wert")
     parser.add_argument("--alpha", type=float, required=True, help="Der einzelne Alpha-Wert, der getestet werden soll.")
     parser.add_argument("--best_wer", type=float, required=False, help="Bisher bester WER (optional)")
-    parser.add_argument("--report_dir", type=str, required=True, help="Pfad zum Report-Ordner (wird vom Manager übergeben)")
+    parser.add_argument("--report_dir", type=str, required=True, help="Pfad zum Report-Ordner")
     args = parser.parse_args()
+    
     TARGET_ALPHA = args.alpha
-    BEST_WER_SO_FAR = args.best_wer if hasattr(args, 'best_wer') and args.best_wer is not None else None
+    BEST_WER_SO_FAR = args.best_wer
     REPORT_DIR = args.report_dir
 
-    # Log-Datei wird jetzt pro Alpha-Lauf benannt, um Konflikte zu vermeiden
+    os.makedirs(REPORT_DIR, exist_ok=True)
     LOG_PATH = os.path.join(REPORT_DIR, f"log_alpha_{TARGET_ALPHA:.2f}.txt")
     logging.basicConfig(
         level=logging.INFO,
@@ -174,48 +167,30 @@ if __name__ == "__main__":
     )
 
     # --- Konfiguration ---
-    MODEL_NAME = "aware-ai/wav2vec2-base-german"
-    LM_PATH = "server/lm/4gram_de.klm"
-    N_VALIDATION = 4 # 4000
-    SEED = 42
-
+    N_VALIDATION = 400 # Reduziert für schnellere Testläufe, kann erhöht werden
+    
     if not os.path.isfile(LM_PATH):
         print_error(f"FEHLER: KenLM-Modell nicht gefunden: {LM_PATH}")
         exit(1)
 
-    print_info(f"Lade Wav2Vec2-Modell ({MODEL_NAME}) und Processor ...")
-    processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
-    # Fix: If processor is a tuple, unpack it (for compatibility with some huggingface versions)
-    if isinstance(processor, tuple):
-        processor = processor[0]
-    model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
-    model.eval()
-
-    # Get vocab/labels from processor (standard HuggingFace Wav2Vec2Processor)
-    try:
-        vocab_dict = processor.tokenizer.get_vocab()  # type: ignore[attr-defined]
-        labels = [k for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])]
-    except AttributeError:
-        print_error(f"Wav2Vec2Processor attributes: {dir(processor)}")
-        raise AttributeError("Wav2Vec2Processor has no 'tokenizer' mit 'get_vocab'. Bitte checke deine transformers version oder processor object.")
+    # Lade das zentrale ASR-Modell
+    # Hinweis: Das Modell wird hier anders initialisiert als im Server, um Flexibilität zu wahren.
+    asr_model = ASRModel(model_name="aware-ai/wav2vec2-base-german")
 
     print_info("Lade Common Voice (DE) Testdaten ...")
     dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
-    dataset = dataset.select(range(N_VALIDATION))  # type: ignore[attr-defined]
+    dataset = dataset.select(range(N_VALIDATION))
     dataset = dataset.select_columns(["audio", "sentence"])
 
     print_info(f"Extrahiere {N_VALIDATION} Audiodateien und Transkripte ...")
     validation_data = []
-    for i in range(len(dataset)):
-        audio_obj = dataset[i]["audio"]
-        text = dataset[i]["sentence"].strip()
-        if "array" in audio_obj and "sampling_rate" in audio_obj:
-            audio = audio_obj["array"]
-            sampling_rate = audio_obj["sampling_rate"]
-            if sampling_rate is not None and text:
-                validation_data.append((audio, text, sampling_rate))
+    for item in dataset:
+        audio_obj = item["audio"]
+        text = item["sentence"].strip()
+        if "array" in audio_obj and "sampling_rate" in audio_obj and text:
+            validation_data.append((audio_obj["array"], text, audio_obj["sampling_rate"]))
 
     # Aufruf der Hauptlogik
-    tune_for_single_alpha(validation_data, labels, LM_PATH, REPORT_DIR, TARGET_ALPHA, processor, model, best_wer_so_far=BEST_WER_SO_FAR)
+    tune_for_single_alpha(validation_data, asr_model, REPORT_DIR, TARGET_ALPHA, best_wer_so_far=BEST_WER_SO_FAR)
 
     print_info(f"\n[SUCCESS] Lauf für Alpha {TARGET_ALPHA} beendet.")
