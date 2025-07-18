@@ -42,7 +42,7 @@ Alle Details zur Verbesserung der Ist-Situation nach dem letzten Feature: https:
 Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutlich verbessert
 
 ### 1. Wortverschmelzungen und falsche Trennungen
-- [ ] **Shallow Fusion mit KenLM (pyctcdecode):**
+- [x] **Shallow Fusion mit KenLM (pyctcdecode):**
     - [x] KenLM-Tools kompilieren (lmplz, build_binary etc.)
     - [x] Python-Bindings von KenLM im venv installieren
     - [x] README für Setup und Nutzung ergänzen
@@ -73,16 +73,7 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
     - [x] **Dokumentation & Referenzen:**
         - Quellen und Step-by-Step-Referenz in README.md und Code-Kommentaren
     - [x] Modellerstellung muss Hauptthread blockieren, ohne Modell macht es keinen Sinn das System zu benutzen: `threading.Thread(target=ensure_initial_kenlm, daemon=True).start()`
-
-# Discovered During Work
-- Die KenLM-Trainingspipeline läuft jetzt vollständig in Python, nutzt sys.executable und dynamische Pfade für lmplz/build_binary (venv-sicher).
-
-- [ ] **Real-Time Encoder State Revision:**
-    - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
-- [x] .gitignore für Sprachmodelle und Binärdateien angepasst
-- [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
-- [ ] Modell `wav2vec2-xls-r-1B-german` verwenden statt facebook/wav2vec2-large-xlsr-53-german
-- [ ] Integration von `wav2vec-S` für optimierte Streaming-Inferenz
+- [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) `tune_decoder`
 
 ### 3. Genauere Wortgrenzen und Alignment
 - [ ] **Forced Alignment auf CTC-Logits:**
@@ -192,7 +183,17 @@ Wird aktuell von LLM über Olama gefixed.
 - [ ] **Truecasing-Adapter:**
     - Truecasing-Stufe mit POS-Tagging (spaCy-Deutsch) für Großschreibung von Satzanfängen und Substantiven
 
-**Regeln für die Coding-KI:**
+# Discovered During Work
+- Die KenLM-Trainingspipeline läuft jetzt vollständig in Python, nutzt sys.executable und dynamische Pfade für lmplz/build_binary (venv-sicher).
+
+- [x] .gitignore für Sprachmodelle und Binärdateien angepasst
+- [x] Fehler- und Fallback-Handling für KenLM-Integration implementiert
+- [ ] **Real-Time Encoder State Revision:**
+    - Speicherung und Überarbeitung früher Hypothesen mit neuen Frames zur Korrektur von Zusammenziehungen
+- [ ] Modell `wav2vec2-xls-r-1B-german` verwenden statt facebook/wav2vec2-large-xlsr-53-german
+- [ ] Integration von `wav2vec-S` für optimierte Streaming-Inferenz
+
+# Regeln für die Coding-KI
 
 - Jede Aufgabe wird als **erledigt** markiert, sobald alle zugehörigen Tests und Code-Reviews bestanden sind.
 - Entscheidungen zwischen vorgestellten Optionen treffen oder bei Bedarf explizit nachfragen.

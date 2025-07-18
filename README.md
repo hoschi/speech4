@@ -121,28 +121,25 @@ python scripts/extract_oscar_german.py
 
 ## Hyperparameter-Tuning für Decoder (Common Voice DE)
 
-Mit dem Skript `server/tune_decoder.py` kannst du die optimalen KenLM-Decoder-Parameter (alpha, beta) für das deutsche wav2vec2-Modell auf Basis von Mozilla Common Voice (DE) bestimmen.
+Mit dem Skript `server/manager.py` kannst du die optimalen KenLM-Decoder-Parameter (alpha, beta) für das deutsche wav2vec2-Modell auf Basis von Mozilla Common Voice (DE) bestimmen.
 
 Hierfür muss `datasets==3.6.0` eingestellt werden, da die v4 die Daten von Common Voice nicht unterstützt.
 
 ### Voraussetzungen
-- Python venv ist aktiviert (`source server/venv/bin/activate`)
-- Alle Abhängigkeiten sind installiert (`pip install -r server/requirements.txt`)
 - KenLM-Modell liegt vor (z.B. `server/lm/4gram_de.klm`)
 
 ### Ausführung
 
 ```bash
 source server/venv/bin/activate
-python server/tune_decoder.py
+python server/manager.py
 ```
 
-Das Skript lädt automatisch 200 zufällige Testbeispiele aus Common Voice (DE), führt eine Grid Search über die Parameter alpha und beta durch und gibt die optimalen Werte sowie die beste WER (Word Error Rate) aus.
+Das Skript lädt automatisch Testbeispiele aus Common Voice (DE), führt eine Grid Search über die Parameter alpha und beta durch und gibt die optimalen Werte sowie die beste WER (Word Error Rate) aus.
 
 **Hinweis:**
-- Das Skript lädt das Modell `facebook/wav2vec2-large-xlsr-53-german` und verwendet das KenLM-Modell aus `server/lm/4gram_de.klm`.
-- Die Berechnung kann je nach Hardware einige Minuten dauern.
-- Die Ergebnisse werden im Terminal ausgegeben.
+- Die Berechnung dauert eine Nacht lang
+- Die Ergebnisse werden im Terminal ausgegeben und als CSV gespeichert in `server/reports/tune-decoder`
 
 Weitere Details siehe `docs/Hyperparameter-Tuning-Anleitung.md`.
 
