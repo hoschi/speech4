@@ -92,7 +92,7 @@ def tune_for_single_alpha(validation_data, labels, lm_path, report_dir, target_a
     """Führt die Grid Search für einen einzelnen Alpha-Wert und alle Beta-Werte durch."""
     NUM_WORKERS = 1  # Wichtig für deinen PC
 
-    beta_range = np.arange(-1.0, 2.0, 0.25)  # müssen unter 16 sein!!!!
+    beta_range = [-1] # np.arange(-1.0, 2.0, 0.25)  # müssen unter 16 sein!!!!
 
     tasks = [(target_alpha, beta) for beta in beta_range]
     total_tasks = len(tasks)

@@ -78,7 +78,21 @@ Die ASR-Qualität im Live-Streaming-Backend wird durch gezielte Maßnahmen deutl
 
 https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#0
 
-- [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) `tune_decoder`
+- [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) tune_decoder
+- [x] Neues Model
+    - Ergebnis für "facebook/wav2vec2-large-xlsr-53-german"
+        - Beste Alpha: 0.20
+        - Beste Beta:  -1.00
+        - Beste avg. WER: 0.2044
+    - wav2vec2-S ist nicht verfügbar?
+        - Sagt er hier https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#8
+    - habe gemini-cli gefragt und das hat ein anderes verfügbares gefunden
+        - siehe `docs/2025-07-18-better-audio-modell.md`
+        - [ ] decoder tune run um WER zu vergleichen
+    - wav2vec2-S ist nicht verfügbar ist falsch, ich hab das gefunden:
+        - [biaofuxmu/wav2vec-S: Code for ACL 2024 findings paper "wav2vec-S: Adapting Pre-trained Speech Models for Streaming"](https://github.com/biaofuxmu/wav2vec-S)
+        - [biaofu-xmu/wav2vec-S-Large-ft-960h · Hugging Face](https://huggingface.co/biaofu-xmu/wav2vec-S-Large-ft-960h)
+        - [ ] decoder tune run um WER zu vergleichen
 
 
 ### 3. Genauere Wortgrenzen und Alignment
