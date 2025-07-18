@@ -156,12 +156,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tune KenLM Decoder für einen einzelnen Alpha-Wert")
     parser.add_argument("--alpha", type=float, required=True, help="Der einzelne Alpha-Wert, der getestet werden soll.")
     parser.add_argument("--best_wer", type=float, required=False, help="Bisher bester WER (optional)")
+    parser.add_argument("--report_dir", type=str, required=True, help="Pfad zum Report-Ordner (wird vom Manager übergeben)")
     args = parser.parse_args()
     TARGET_ALPHA = args.alpha
     BEST_WER_SO_FAR = args.best_wer if hasattr(args, 'best_wer') and args.best_wer is not None else None
+    REPORT_DIR = args.report_dir
 
-    # Logging und Report-Verzeichnis einrichten
-    REPORT_DIR = get_report_dir()
     # Log-Datei wird jetzt pro Alpha-Lauf benannt, um Konflikte zu vermeiden
     LOG_PATH = os.path.join(REPORT_DIR, f"log_alpha_{TARGET_ALPHA:.2f}.txt")
     logging.basicConfig(

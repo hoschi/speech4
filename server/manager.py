@@ -9,9 +9,9 @@ import sys
 # KONFIGURATION
 # ==============================================================================
 ALPHA_RANGE = [0.2] # np.arange(0.0, 1, 0.1)
-PROGRESS_FILE = 'progress.txt'
+
 # Das Verzeichnis, in dem tune_decoder.py seine CSVs speichert
-REPORT_DIR = os.path.join("server", "reports", "tune-decoder")
+BASE_REPORT_DIR = os.path.join("server", "reports", "tune-decoder")
 
 # ==============================================================================
 # HELFER-FUNKTIONEN
@@ -39,7 +39,7 @@ def mark_alpha_as_completed(alpha):
     with open(PROGRESS_FILE, 'a') as f:
         f.write(f"{alpha}\n")
 
-def summarize_results():
+def summarize_results(REPORT_DIR, PROGRESS_FILE):
     """
     Sucht alle einzelnen CSV-Dateien, führt sie zusammen und ermittelt die beste Kombination.
     """
@@ -103,7 +103,7 @@ def summarize_results():
     except Exception as e:
         print(f"Fehler beim Schreiben des zusammenfassenden Reports: {e}")
 
-def get_best_wer_so_far():
+def get_best_wer_so_far(REPORT_DIR):
     """Liest den besten WER aus der letzten Zeile der aktuellen best_run.csv Datei (falls vorhanden). Gibt None zurück, falls keine Datei oder keine avg-Zeile."""
     pattern = os.path.join(REPORT_DIR, '*_best_run.csv')
     result_files = glob.glob(pattern)
@@ -137,10 +137,15 @@ def get_best_wer_so_far():
 # ==============================================================================
 
 if __name__ == "__main__":
-    # Sofortiger Abbruch, falls progress.txt existiert
-    if os.path.exists(PROGRESS_FILE):
-        print(f"Abbruch: {PROGRESS_FILE} existiert bereits. Bitte vorher löschen, um einen neuen Durchlauf zu starten.")
+    commit = get_git_commit_hash()
+    REPORT_DIR = os.path.join(BASE_REPORT_DIR, commit)
+    PROGRESS_FILE = os.path.join(REPORT_DIR, 'progress.txt')
+
+    # Ordner anlegen, falls nicht vorhanden. Falls vorhanden, abbrechen.
+    if os.path.exists(REPORT_DIR):
+        print(f"Abbruch: Report-Ordner {REPORT_DIR} existiert bereits. Bitte vorher löschen oder committen, um einen neuen Durchlauf zu starten.")
         sys.exit(1)
+    os.makedirs(REPORT_DIR)
 
     completed_alphas = get_completed_alphas()
     all_alphas_rounded = {round(a, 2) for a in ALPHA_RANGE}
@@ -158,8 +163,8 @@ if __name__ == "__main__":
                 print(f"STARTE LAUF FÜR ALPHA = {alpha_rounded}")
                 print(f"=============================================")
                 try:
-                    best_wer_so_far = get_best_wer_so_far()
-                    command = ["python", "server/tune_decoder.py", "--alpha", str(alpha_rounded)]
+                    best_wer_so_far = get_best_wer_so_far(REPORT_DIR)
+                    command = ["python", "server/tune_decoder.py", "--alpha", str(alpha_rounded), "--report_dir", REPORT_DIR]
                     if best_wer_so_far is not None:
                         command += ["--best_wer", str(best_wer_so_far)]
                     subprocess.run(command, check=True, text=True) # text=True für bessere Ausgabe
@@ -174,7 +179,7 @@ if __name__ == "__main__":
         else:
             print("Alle Alpha-Läufe sind bereits abgeschlossen.")
         # Führe die Zusammenfassung am Ende aus, egal ob neue Läufe stattfanden oder nicht
-        summarize_results()
+        summarize_results(REPORT_DIR, PROGRESS_FILE)
     finally:
         # Versuche progress.txt zu löschen
         try:
