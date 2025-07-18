@@ -8,7 +8,7 @@ import sys
 # ==============================================================================
 # KONFIGURATION
 # ==============================================================================
-ALPHA_RANGE = [0.2] # np.arange(0.0, 1, 0.1)
+ALPHA_RANGE = np.arange(0.0, 1, 0.1)
 
 # Das Verzeichnis, in dem tune_decoder.py seine CSVs speichert
 BASE_REPORT_DIR = os.path.join("server", "reports", "tune-decoder")
