@@ -166,7 +166,7 @@ if __name__ == "__main__":
     )
 
     # --- Konfiguration ---
-    N_VALIDATION = 4 # 4000
+    N_VALIDATION = 4000
     
     if not os.path.isfile(LM_PATH):
         print_error(f"FEHLER: KenLM-Modell nicht gefunden: {LM_PATH}")
