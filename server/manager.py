@@ -46,11 +46,11 @@ def summarize_results():
     print("\n=============================================")
     print("ZUSAMMENFASSUNG ALLER ERGEBNISSE")
     print("=============================================")
-    
+
     # 1. Alle einzelnen Ergebnis-CSVs finden
     pattern = os.path.join(REPORT_DIR, '*_alpha_*.csv')
     result_files = glob.glob(pattern)
-    
+
     if not result_files:
         print("Keine Ergebnis-Dateien gefunden. Es gibt nichts zusammenzufassen.")
         return
@@ -69,7 +69,7 @@ def summarize_results():
                 header = next(reader)
             else:
                 next(reader) # Überspringe Header in anderen Dateien
-            
+
             for row in reader:
                 all_data.append(row)
 
@@ -88,10 +88,10 @@ def summarize_results():
     print(f"Beste Alpha: {best_alpha}")
     print(f"Beste Beta:  {best_beta}")
     print(f"Beste avg. WER: {best_wer:.4f}")
-    
+
     # 4. Schreibe die finale, zusammengefasste CSV-Datei
     commit = get_git_commit_hash()
-    summary_path = os.path.join(REPORT_DIR, f'final_summary_{commit}.csv')
+    summary_path = os.path.join(REPORT_DIR, f'{commit}_final_summary.csv')
     try:
         with open(summary_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
