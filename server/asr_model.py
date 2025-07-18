@@ -113,13 +113,13 @@ class ASRModel:
     """
     Kapselt das Wav2Vec2-Modell, den Prozessor und die Decoder-Erstellung.
     """
-    def __init__(self, model_name=MODEL_NAME):
-        print(f"[INFO] Lade ASR-Modell: {model_name}")
-        self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+    def __init__(self):
+        print(f"[INFO] Lade ASR-Modell: {MODEL_NAME}")
+        self.processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
         if isinstance(self.processor, tuple):
             self.processor = self.processor[0]
         
-        self.model = Wav2Vec2ForCTC.from_pretrained(model_name)
+        self.model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
         self.model.eval()
         
         self.labels = self._extract_labels()

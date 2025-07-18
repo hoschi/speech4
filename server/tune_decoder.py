@@ -173,8 +173,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Lade das zentrale ASR-Modell
-    # Hinweis: Das Modell wird hier anders initialisiert als im Server, um Flexibilität zu wahren.
-    asr_model = ASRModel(model_name="aware-ai/wav2vec2-base-german")
+    asr_model = ASRModel()
 
     print_info("Lade Common Voice (DE) Testdaten ...")
     dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)
