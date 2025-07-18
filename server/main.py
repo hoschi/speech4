@@ -44,7 +44,12 @@ async def websocket_stream(websocket: WebSocket):
     
     try:
         while True:
-            message = await websocket.receive()
+            try:
+                message = await websocket.receive()
+                print(f"[WS] Empfangen: type={message.get('type')} keys={list(message.keys())} size={len(message.get('bytes', b'')) if 'bytes' in message else '-'} text={message.get('text', '')[:100]}")
+            except RuntimeError as e:
+                # Verbindung wurde vom Client geschlossen
+                break
             
             if message["type"] == "websocket.receive":
                 if "bytes" in message:

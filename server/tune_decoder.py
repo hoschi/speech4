@@ -80,7 +80,7 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
 def tune_for_single_alpha(validation_data, asr_model, report_dir, target_alpha, best_wer_so_far=None):
     """Führt die Grid Search für einen einzelnen Alpha-Wert und alle Beta-Werte durch."""
     NUM_WORKERS = 1  # Für lokale Ausführung
-    beta_range = np.arange(-2.0, 2.1, 0.25)
+    beta_range = [-1] #np.arange(-2.0, 2.1, 0.25)
 
     tasks = [(target_alpha, beta) for beta in beta_range]
     total_tasks = len(tasks)
@@ -155,7 +155,6 @@ if __name__ == "__main__":
     BEST_WER_SO_FAR = args.best_wer
     REPORT_DIR = args.report_dir
 
-    os.makedirs(REPORT_DIR, exist_ok=True)
     LOG_PATH = os.path.join(REPORT_DIR, f"log_alpha_{TARGET_ALPHA:.2f}.txt")
     logging.basicConfig(
         level=logging.INFO,
@@ -167,7 +166,7 @@ if __name__ == "__main__":
     )
 
     # --- Konfiguration ---
-    N_VALIDATION = 400 # Reduziert für schnellere Testläufe, kann erhöht werden
+    N_VALIDATION = 4 # 4000
     
     if not os.path.isfile(LM_PATH):
         print_error(f"FEHLER: KenLM-Modell nicht gefunden: {LM_PATH}")
