@@ -96,6 +96,35 @@ def summarize_results():
     except Exception as e:
         print(f"Fehler beim Schreiben des zusammenfassenden Reports: {e}")
 
+def get_best_wer_so_far():
+    """Liest den besten WER aus der letzten Zeile der aktuellen best_run.csv Datei (falls vorhanden). Gibt None zurück, falls keine Datei oder keine avg-Zeile."""
+    pattern = os.path.join(REPORT_DIR, '*_best_run.csv')
+    result_files = glob.glob(pattern)
+    if not result_files:
+        print("[INFO] Keine best_run.csv Datei gefunden.")
+        return None
+    try:
+        # Nimm die zuletzt geänderte Datei (sollte die aktuelle sein)
+        best_run_file = max(result_files, key=os.path.getmtime)
+        with open(best_run_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            if not lines:
+                print(f"[WARN] best_run.csv ({best_run_file}) ist leer.")
+                return None
+            last_row = lines[-1].strip().split(',')
+            if last_row[0] == 'avg':
+                try:
+                    return float(last_row[1])
+                except Exception:
+                    print(f"[WARN] Konnte WER aus avg-Zeile nicht parsen: {last_row}")
+                    return None
+            else:
+                print(f"[WARN] Keine avg-Zeile in best_run.csv ({best_run_file}) gefunden.")
+                return None
+    except Exception as e:
+        print(f"[WARN] Fehler beim Lesen von best_run.csv: {e}")
+        return None
+
 # ==============================================================================
 # HAUPT-LOGIK
 # ==============================================================================
@@ -122,7 +151,10 @@ if __name__ == "__main__":
                 print(f"STARTE LAUF FÜR ALPHA = {alpha_rounded}")
                 print(f"=============================================")
                 try:
+                    best_wer_so_far = get_best_wer_so_far()
                     command = ["python", "server/tune_decoder.py", "--alpha", str(alpha_rounded)]
+                    if best_wer_so_far is not None:
+                        command += ["--best_wer", str(best_wer_so_far)]
                     subprocess.run(command, check=True, text=True) # text=True für bessere Ausgabe
                     mark_alpha_as_completed(alpha_rounded)
                     print(f"--> Lauf für Alpha {alpha_rounded} erfolgreich beendet.")
