@@ -81,6 +81,7 @@ https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2zto
 - [x] Automatisierte Grid-Search für KenLM-Parameter (Alpha/Beta) tune_decoder
 - [x] Neues Model
     - Ergebnis für "facebook/wav2vec2-large-xlsr-53-german"
+        - Das waren auf jeden Fall 4000 Beispielen und 170 Kombinationen
         - Beste Alpha: 0.20
         - Beste Beta:  -1.00
         - Beste avg. WER: 0.2044
@@ -88,6 +89,7 @@ https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2zto
         - Sagt er hier https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2ztoRb1s7Q#8
     - habe gemini-cli gefragt und das hat ein anderes verfügbares gefunden
         - siehe `docs/2025-07-18-better-audio-modell.md`
+        - [x] eine Kombination dauert: 3095s. Bei 170 Kombinationen kann man in 13h 356 Beispiele berechnen
         - [ ] decoder tune run um WER zu vergleichen
     - wav2vec2-S ist nicht verfügbar ist falsch, ich hab das gefunden:
         - [biaofuxmu/wav2vec-S: Code for ACL 2024 findings paper "wav2vec-S: Adapting Pre-trained Speech Models for Streaming"](https://github.com/biaofuxmu/wav2vec-S)
