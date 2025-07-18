@@ -22,6 +22,10 @@ app = FastAPI()
 # Modell und Processor beim Start laden
 MODEL_NAME = "jonatasgrosman/wav2vec2-xls-r-1b-german"
 processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
+if isinstance(processor, tuple):
+    proc = processor[0]
+else:
+    proc = processor
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
 model.eval()
 
@@ -49,7 +53,13 @@ def init_kenlm_decoder(app):
         print(f"[INFO] KenLM-Modell gefunden: {LM_PATH}")
     
     # Extrahiere Labels aus dem Processor
-    labels = list(processor.tokenizer.get_vocab().keys())
+    if hasattr(proc, 'tokenizer') and hasattr(proc.tokenizer, 'get_vocab'):
+        vocab_dict = proc.tokenizer.get_vocab()
+    elif hasattr(proc, 'feature_extractor') and hasattr(proc.feature_extractor, 'vocab'):
+        vocab_dict = proc.feature_extractor.vocab
+    else:
+        raise AttributeError('Wav2Vec2Processor hat weder tokenizer.get_vocab() noch feature_extractor.vocab!')
+    labels = [k for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])]
     app.state.decoder = build_ctcdecoder(
         labels,
         kenlm_model_path=LM_PATH,
@@ -98,7 +108,7 @@ async def websocket_stream(websocket: WebSocket):
                         # Wandle PCM in Float-Tensor um und normalisiere auf [-1, 1]
                         audio_tensor = torch.from_numpy(audio_chunk).float() / 32768.0
                         # Feature-Extraktion und Padding via Processor
-                        input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
+                        input_values = proc(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
                         with torch.no_grad():
                             # Modell-Inferenz: Erzeuge Logits (Wahrscheinlichkeiten für jedes Token pro Frame)
                             logits = model(input_values).logits
@@ -117,7 +127,7 @@ async def websocket_stream(websocket: WebSocket):
                             else:
                                 predicted_ids = torch.argmax(middle_logits, dim=-1)
                                 tokens = predicted_ids.tolist()
-                                transcription = processor.batch_decode([tokens])[0]
+                                transcription = proc.batch_decode([tokens])[0]
                             # Verhindere Überschneidungen mit vorherigem Chunk
                             if hypotheses and hypotheses[-1]['end'] > chunk_start:
                                 hypotheses[-1]['end'] = chunk_start
@@ -140,7 +150,7 @@ async def websocket_stream(websocket: WebSocket):
                             if full_audio:
                                 all_audio = np.concatenate(full_audio)
                                 audio_tensor = torch.from_numpy(all_audio).float() / 32768.0
-                                input_values = processor(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
+                                input_values = proc(audio_tensor, sampling_rate=16000, return_tensors="pt").input_values
                                 with torch.no_grad():
                                     logits = model(input_values).logits
                                 if logits.shape[1] > 0:
@@ -150,7 +160,7 @@ async def websocket_stream(websocket: WebSocket):
                                     else:
                                         predicted_ids = torch.argmax(logits, dim=-1)
                                         tokens = predicted_ids[0].tolist()
-                                        transcription = processor.batch_decode([tokens])[0]
+                                        transcription = proc.batch_decode([tokens])[0]
                                     # Sende das finale Transkript an den Client
                                     await websocket.send_json({
                                         'type': 'final',

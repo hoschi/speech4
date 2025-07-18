@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # --- Konfiguration ---
     MODEL_NAME = "aware-ai/wav2vec2-base-german"
     LM_PATH = "server/lm/4gram_de.klm"
-    N_VALIDATION = 4000
+    N_VALIDATION = 4 # 4000
     SEED = 42
 
     if not os.path.isfile(LM_PATH):
@@ -193,10 +193,11 @@ if __name__ == "__main__":
 
     # Get vocab/labels from processor (standard HuggingFace Wav2Vec2Processor)
     try:
-        labels = list(processor.tokenizer.get_vocab().keys())  # type: ignore[attr-defined]
+        vocab_dict = processor.tokenizer.get_vocab()  # type: ignore[attr-defined]
+        labels = [k for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])]
     except AttributeError:
         print_error(f"Wav2Vec2Processor attributes: {dir(processor)}")
-        raise AttributeError("Wav2Vec2Processor has no 'tokenizer' with 'get_vocab'. Please check your transformers version or processor object.")
+        raise AttributeError("Wav2Vec2Processor has no 'tokenizer' mit 'get_vocab'. Bitte checke deine transformers version oder processor object.")
 
     print_info("Lade Common Voice (DE) Testdaten ...")
     dataset = load_dataset("mozilla-foundation/common_voice_17_0", "de", split="test", trust_remote_code=True)

@@ -94,7 +94,6 @@ https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2zto
         - [biaofu-xmu/wav2vec-S-Large-ft-960h · Hugging Face](https://huggingface.co/biaofu-xmu/wav2vec-S-Large-ft-960h)
         - [ ] decoder tune run um WER zu vergleichen
 
-
 ### 3. Genauere Wortgrenzen und Alignment
 - [ ] **Forced Alignment auf CTC-Logits:**
     - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`)
