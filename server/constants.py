@@ -2,8 +2,10 @@
 
 import os
 
+EXAMPLES_COUNT_DEBUG = 350
+EXAMPLES_COUNT_REAL = 800
 DEBUG = os.environ.get('DEBUG', '').lower() == 'true'
-N_VALIDATION = 2500 if DEBUG else 2200
+N_VALIDATION = EXAMPLES_COUNT_DEBUG if DEBUG else EXAMPLES_COUNT_REAL
 
 # Wertebereich für Alpha im Grid Search
 ALPHA_RANGE = [round(x, 2) for x in list(__import__('numpy').arange(0.0, 1, 0.2))]

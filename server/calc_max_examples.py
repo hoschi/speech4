@@ -20,12 +20,12 @@ n_combinations = len(ALPHA_RANGE) * len(beta_range)
 
 t = args.t
 # Formel des Users:
-# n_combinations * N_VALIDATION_max * t / 50 <= total_seconds
-# => N_VALIDATION_max = total_seconds / (n_combinations * t / anzahl beispiele)
-N_VALIDATION_max = total_seconds / (n_combinations * t / 350)
+# n_combinations * N_VALIDATION_max * t / EXAMPLES_COUNT_DEBUG <= total_seconds
+# => N_VALIDATION_max = total_seconds / (n_combinations * t / EXAMPLES_COUNT_DEBUG)
+N_VALIDATION_max = total_seconds / (n_combinations * t / constants.EXAMPLES_COUNT_DEBUG)
 
 print(f"Alpha-Kombinationen: {len(ALPHA_RANGE)} {ALPHA_RANGE}")
 print(f"Beta-Kombinationen: {len(beta_range)} {beta_range}")
 print(f"Gesamt-Kombinationen: {n_combinations}")
-print(f"Zeit pro Kombination (für 50 Beispiele): {t:.2f} Sekunden")
+print(f"Zeit pro Kombination (für {constants.EXAMPLES_COUNT_DEBUG} Beispiele): {t:.2f} Sekunden")
 print(f"Maximal mögliches N_VALIDATION für 13h Laufzeit: {int(N_VALIDATION_max)}") 
