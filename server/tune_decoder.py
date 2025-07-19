@@ -14,6 +14,7 @@ import csv
 
 # Importiere die zentrale ASR-Modell-Klasse und Konstanten
 from asr_model import ASRModel, LM_PATH, MODEL_NAME
+from constants import N_VALIDATION, beta_range
 
 # ==============================================================================
 # 1. HELFER-FUNKTIONEN UND WORKER-FUNKTION
@@ -80,7 +81,6 @@ def evaluate_params(task_args, labels, lm_path, logits_cache, ground_truths):
 def tune_for_single_alpha(validation_data, asr_model, report_dir, target_alpha, best_wer_so_far=None):
     """Führt die Grid Search für einen einzelnen Alpha-Wert und alle Beta-Werte durch."""
     NUM_WORKERS = 1  # Für lokale Ausführung
-    beta_range = np.arange(-2.0, 2.1, 0.25)
 
     tasks = [(target_alpha, beta) for beta in beta_range]
     total_tasks = len(tasks)
@@ -165,9 +165,6 @@ if __name__ == "__main__":
         ]
     )
 
-    # --- Konfiguration ---
-    N_VALIDATION = 370
-    
     if not os.path.isfile(LM_PATH):
         print_error(f"FEHLER: KenLM-Modell nicht gefunden: {LM_PATH}")
         exit(1)
