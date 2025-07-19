@@ -8,11 +8,11 @@ DEBUG = os.environ.get('DEBUG', '').lower() == 'true'
 N_VALIDATION = EXAMPLES_COUNT_DEBUG if DEBUG else EXAMPLES_COUNT_REAL
 
 # Wertebereich für Alpha im Grid Search
-ALPHA_RANGE = [round(x, 2) for x in list(__import__('numpy').arange(0.0, 1, 0.2))]
+ALPHA_RANGE = [round(x, 2) for x in list(__import__('numpy').linspace(0.0, 1, num=5))]
 if DEBUG:
     ALPHA_RANGE = [ALPHA_RANGE[0]]
 
 # Wertebereich für Beta im Grid Search
-beta_range = [round(x, 2) for x in list(__import__('numpy').arange(-2.0, 2.0, 0.4))]
+beta_range = [round(x, 2) for x in list(__import__('numpy').linspace(-2.0, 2.0, num=10))]
 if DEBUG:
     beta_range = [beta_range[0]]
