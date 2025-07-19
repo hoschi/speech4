@@ -13,8 +13,8 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 from pyctcdecode.decoder import build_ctcdecoder
 
 # --- Konstanten ---
-#MODEL_NAME = "jonatasgrosman/wav2vec2-xls-r-1b-german"
-MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german"
+MODEL_NAME = "jonatasgrosman/wav2vec2-xls-r-1b-german" # 350 Beispiele 300s
+# MODEL_NAME = "facebook/wav2vec2-large-xlsr-53-german" # 350 Beispiele 160s
 LM_PATH = "server/lm/4gram_de.klm"
 BASE_CORPUS = "german_base_corpus.txt"
 CORPUS_DATA_PATH = "server/data/corpus.txt"
