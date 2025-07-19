@@ -4,6 +4,7 @@ import os
 import glob
 import csv
 import sys
+from constants import N_VALIDATION
 
 # ==============================================================================
 # KONFIGURATION
@@ -45,6 +46,7 @@ def summarize_results(REPORT_DIR, PROGRESS_FILE):
     print("\n=============================================")
     print("ZUSAMMENFASSUNG ALLER ERGEBNISSE")
     print("=============================================")
+    print(f"Anzahl berechneter Beispiele pro Kombination: {N_VALIDATION}")
 
     # 1. Alle einzelnen Ergebnis-CSVs finden
     pattern = os.path.join(REPORT_DIR, '*_alpha_*.csv')
