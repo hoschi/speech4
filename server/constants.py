@@ -3,7 +3,7 @@
 import os
 
 DEBUG = os.environ.get('DEBUG', '').lower() == 'true'
-N_VALIDATION = 50 if DEBUG else 370
+N_VALIDATION = 350 if DEBUG else 370
 
 # Wertebereich für Alpha im Grid Search
 ALPHA_RANGE = [round(x, 2) for x in list(__import__('numpy').arange(0.0, 1, 0.1))]
