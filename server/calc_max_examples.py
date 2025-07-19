@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser(description='Berechne maximales N_VALIDATION f√
 parser.add_argument('-t', type=float, required=True, help='Zeit pro Kombination mit DEBUG=true Anzahl an Beispielen in Sekunden (z.B. 3908)')
 args = parser.parse_args()
 
-total_seconds = 13 * 60 * 60
+total_seconds = 13 * 60 * 60 # 13h
 
 # DEBUG auf false setzen, damit constants.py die volle Range l√§dt
 os.environ['DEBUG'] = 'false'
