@@ -141,8 +141,9 @@ python server/manager.py
 Das Skript lädt automatisch Testbeispiele aus Common Voice (DE), führt eine Grid Search über die Parameter alpha und beta durch und gibt die optimalen Werte sowie die beste WER (Word Error Rate) aus.
 
 **Hinweis:**
-- Die Berechnung dauert eine Nacht lang
+- Die Berechnung dauert eine Nacht lang (13h)
 - Die Ergebnisse werden im Terminal ausgegeben und als CSV gespeichert in `server/reports/tune-decoder`
+- Es macht Sinn einen breiteren run (zB commit `e074f1b`) zu machen und dann die KI die "final csv" Datei anschauen zu lassen um einen zweiten Run mit genau so vielen Kombinationen zu machen, aber mit eingeschränktem Wertebereich um die optimale Kombination zu finden.
 
 Weitere Details siehe `docs/Hyperparameter-Tuning-Anleitung.md`.
 
