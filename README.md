@@ -173,3 +173,10 @@ Weitere Details siehe `docs/Hyperparameter-Tuning-Anleitung.md`.
     * beta: -1.1 (-1.5 bis -0.9, 7)
     * examples: 800
     * wer: 0.1317
+* `d5f6ca0` 2025-07-20 09:50
+    * "jonatasgrosman/wav2vec2-xls-r-1b-german"
+    * examples: 4000
+    * alpha: 0.45
+    * beta: -1.1
+    * wer: 0.1218
+    * dauer: 13059s
