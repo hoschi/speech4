@@ -147,6 +147,29 @@ Das Skript lädt automatisch Testbeispiele aus Common Voice (DE), führt eine Gr
 
 Weitere Details siehe `docs/Hyperparameter-Tuning-Anleitung.md`.
 
----
+### Runs
 
-Für weitere Fragen siehe `tasks.md` oder melde dich beim Maintainer. 
+* `acf601f`
+    * "facebook/wav2vec2-large-xlsr-53-german"
+    * alpha: 0.2
+    * beta: -1
+    * examples: 4000
+    * wer: 0.2044
+* `e3beb96` 2025-07-18 13:16
+    * "jonatasgrosman/wav2vec2-xls-r-1b-german"
+    * alpha: 0.2
+    * beta: -1
+    * examples: 4000
+    * wer: 0.1218
+* `e074f1b` 2025-07-19 11:28
+    * "jonatasgrosman/wav2vec2-xls-r-1b-german"
+    * alpha: 0.4 (0.0 bis 0.8, 10)
+    * beta: -1.2 (-2 bis 2, 10)
+    * examples: 336
+    * wer: 0.133
+* `e8faa02` 2025-07-19 18:01
+    * "jonatasgrosman/wav2vec2-xls-r-1b-german"
+    * alpha: 0.45 (0.3 bis 0.6, 7)
+    * beta: -1.1 (-1.5 bis -0.9, 7)
+    * examples: 800
+    * wer: 0.1317
