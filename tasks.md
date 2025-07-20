@@ -90,7 +90,7 @@ https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2zto
     - habe gemini-cli gefragt und das hat ein anderes verfügbares gefunden
         - siehe `docs/2025-07-18-better-audio-modell.md`
         - [x] eine Kombination dauert: 3045s. Bei 170 Kombinationen kann man in 13h 356 Beispiele berechnen
-        - [ ] decoder tune run um WER zu vergleichen
+        - [x] decoder tune run um WER zu vergleichen
     - wav2vec2-S ist nicht verfügbar ist falsch, ich hab das gefunden:
         - [biaofuxmu/wav2vec-S: Code for ACL 2024 findings paper "wav2vec-S: Adapting Pre-trained Speech Models for Streaming"](https://github.com/biaofuxmu/wav2vec-S)
         - [biaofu-xmu/wav2vec-S-Large-ft-960h · Hugging Face](https://huggingface.co/biaofu-xmu/wav2vec-S-Large-ft-960h)
