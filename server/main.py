@@ -18,7 +18,7 @@ asr_model = ASRModel()
 # Stelle sicher, dass ein KenLM-Modell existiert, bevor der Decoder gebaut wird.
 ensure_kenlm_model()
 # Baue den Standard-Decoder für die App.
-app.state.decoder = asr_model.build_decoder(alpha=0.2, beta=-1.0)
+app.state.decoder = asr_model.build_decoder(alpha=0.45, beta=-1.1)
 if app.state.decoder:
     print(f"[INFO] Standard-Decoder erfolgreich geladen.")
 else:
@@ -41,7 +41,7 @@ async def websocket_stream(websocket: WebSocket):
     full_audio = []
     hypotheses = []
     audio_offset = 0
-    
+
     try:
         while True:
             try:
@@ -50,34 +50,34 @@ async def websocket_stream(websocket: WebSocket):
             except RuntimeError as e:
                 # Verbindung wurde vom Client geschlossen
                 break
-            
+
             if message["type"] == "websocket.receive":
                 if "bytes" in message:
                     chunk = np.frombuffer(message["bytes"], dtype=np.int16)
                     buffer = np.concatenate([buffer, chunk])
                     full_audio.append(chunk)
-                    
+
                     while len(buffer) >= WINDOW_SIZE:
                         audio_chunk = buffer[:WINDOW_SIZE].copy()
-                        
+
                         # Logits mit der zentralen Methode berechnen
                         logits = asr_model.get_logits(audio_chunk, sampling_rate=16000)
-                        
+
                         n_frames = logits.shape[0]
                         stride_frames = int(n_frames * STRIDE / WINDOW_SIZE)
-                        
+
                         middle_logits = logits[stride_frames : n_frames - stride_frames] if n_frames > 2 * stride_frames else logits
-                        
+
                         chunk_start = audio_offset + stride_frames * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset
                         chunk_end = audio_offset + (n_frames - stride_frames) * int(WINDOW_SIZE / n_frames) if n_frames > 0 else audio_offset + WINDOW_SIZE
-                        
+
                         if middle_logits.shape[0] > 0:
                             # Dekodierung über die zentrale Methode
                             transcription = asr_model.decode_logits(middle_logits, app.state.decoder)
-                            
+
                             if hypotheses and hypotheses[-1]['end'] > chunk_start:
                                 hypotheses[-1]['end'] = chunk_start
-                                
+
                             hypotheses.append({'start': chunk_start, 'end': chunk_end, 'text': transcription})
                             await websocket.send_json({
                                 'type': 'hypothesis',
@@ -85,7 +85,7 @@ async def websocket_stream(websocket: WebSocket):
                                 'end': chunk_end,
                                 'text': transcription
                             })
-                            
+
                         buffer = buffer[WINDOW_SIZE - OVERLAP:]
                         audio_offset += WINDOW_SIZE - OVERLAP
 
@@ -98,7 +98,7 @@ async def websocket_stream(websocket: WebSocket):
                                 # Finale Logits und Transkription
                                 final_logits = asr_model.get_logits(all_audio, sampling_rate=16000)
                                 final_transcription = asr_model.decode_logits(final_logits, app.state.decoder)
-                                
+
                                 await websocket.send_json({
                                     'type': 'final',
                                     'text': final_transcription
@@ -123,13 +123,13 @@ async def upload_correction(text: str = Form(...), audio: UploadFile = File(None
     text_path = base_path + ".txt"
     with open(text_path, "w", encoding="utf-8") as f:
         f.write(text.strip() + "\n")
-    
+
     audio_path = None
     if audio and audio.filename:
         audio_path = base_path + ".wav"
         with open(audio_path, "wb") as f:
             shutil.copyfileobj(audio.file, f)
-            
+
     return {"status": "ok", "text_file": text_path, "audio_file": audio_path}
 
 
