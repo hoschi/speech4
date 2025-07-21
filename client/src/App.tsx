@@ -91,6 +91,17 @@ function App() {
     }
   };
 
+  // Copy-Handler für ollama.output
+  const handleCopyOllamaOutput = async () => {
+    if (ollama.output) {
+      try {
+        await navigator.clipboard.writeText(ollama.output);
+      } catch (e) {
+        alert(`Kopieren fehlgeschlagen: ${e}`);
+      }
+    }
+  };
+
   return (
     <div className="app-card">
       {error && <div style={{ color: 'red', margin: '1rem 0' }}>Fehler: {error}</div>}
@@ -116,9 +127,16 @@ function App() {
       >
         {ollama.loading ? 'Ollama denkt...' : 'Ollama-Korrektur (asr-fixer)'}
       </button>
+      <button
+        onClick={handleCopyOllamaOutput}
+        style={{ minWidth: 180, marginBottom: 8 }}
+      >
+        copy
+      </button>
       </div>
       <textarea
         value={ollama.output}
+        onChange={(e) => setOllama((curr) => ({...curr, output: e.target.value}))}
         rows={4}
         style={{ width: '100%', minHeight: '4em'}}
         placeholder="Ollama-Output erscheint hier..."
