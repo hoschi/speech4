@@ -76,8 +76,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
   };
 
   return (
-    <div style={{ margin: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      <label htmlFor="transcript" className="transcript-label">Transkript:</label>
+    <div style={{ margin: '2rem 0', display: 'flex', flexDirection: 'row' }}>
       <textarea
         id="transcript"
         value={transcript}
@@ -136,7 +135,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
       <button
         onClick={handleUpload}
         disabled={loading || !transcript.trim() || !isDirty || uploaded || disabled || !audioBlob}
-        style={{ marginTop: '1rem', minWidth: 120 }}
+        style={{ marginTop: '1rem', minWidth: 120, display:'none' }}
       >
         {loading ? 'Hochladen...' : uploaded ? '✅ Hochgeladen' : 'Korrektur hochladen'}
       </button>

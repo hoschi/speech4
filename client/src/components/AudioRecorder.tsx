@@ -206,7 +206,7 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', margin: '1.5rem 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
       <button
         onClick={recording ? () => stopRecording(false) : startRecording}
         className={`button-main${recording ? ' stop' : ''}`}

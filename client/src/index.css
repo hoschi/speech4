@@ -1,44 +1,29 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f7fafc;
+  min-width: 100vw;
+  background: #fff;
   font-family: system-ui, sans-serif;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.app-card {
-  background: #fff;
-  border-radius: 1.2rem;
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
-  padding: 2.5rem 2rem;
-  max-width: 480px;
-  width: 100%;
-  display: flex;
   flex-direction: column;
-  gap: 2rem;
-}
-
-h1 {
-  font-size: 2.2rem;
-  font-weight: bold;
-  text-align: center;
-  color: #1d4ed8;
-  margin-bottom: 0.5rem;
+  align-items: stretch;
+  justify-content: stretch;
+  box-sizing: border-box;
 }
 
 .button-main {
-  padding: 0.9em 2em;
-  border-radius: 0.5em;
+  padding: 1.2em 0.5em;
+  border-radius: 0.7em;
   border: none;
-  font-size: 1.1em;
+  font-size: 1.2em;
   font-weight: 600;
   background: #22c55e;
   color: #fff;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
   cursor: pointer;
   transition: background 0.2s;
+  width: 100%;
+  min-height: 3.2em;
+  box-sizing: border-box;
 }
 .button-main:active {
   background: #16a34a;
@@ -50,30 +35,17 @@ h1 {
   background: #b91c1c;
 }
 
-.transcript-label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-size: 1.1em;
-  font-weight: 500;
-  text-align: center;
-}
-.transcript-input {
+textarea {
   width: 100%;
-  max-width: 420px;
-  font-size: 1.1em;
-  padding: 0.8em 1em;
-  border-radius: 0.5em;
-  border: 1px solid #d1d5db;
+  font-size: 1.2em;
+  border-radius: 0.7em;
+  border: 1.5px solid #d1d5db;
   background: #fff;
-  transition: border 0.2s;
-}
-.transcript-input:focus {
-  border: 1.5px solid #1d4ed8;
+  box-sizing: border-box;
   outline: none;
+  margin: 0;
+  resize: none;
 }
-.status-error {
-  color: #dc2626;
-  font-weight: 600;
-  text-align: center;
-  margin-top: 0.5em;
+textarea:focus {
+  border: 1.5px solid #1d4ed8;
 }

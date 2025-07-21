@@ -2,7 +2,7 @@ import './index.css'
 import AudioRecorder from './components/AudioRecorder'
 import type { TranscriptMessage } from './components/AudioRecorder'
 import TranscriptEditor from './components/TranscriptEditor'
-import TrainButton from './components/TrainButton'
+//import TrainButton from './components/TrainButton'
 import { useState, useRef } from 'react'
 // Für Streaming-API
 type OllamaStreamState = {
@@ -93,14 +93,8 @@ function App() {
 
   return (
     <div className="app-card">
-      <h1>Speech-to-Text Streaming Demo</h1>
-      <AudioRecorder
-        ref={audioRecorderRef as React.RefObject<{ cleanup: () => void } | null>}
-        onTranscriptChunk={handleTranscriptChunk}
-        onRecordingChange={handleRecordingChange}
-        onRecordingComplete={handleRecordingComplete}
-      />
       {error && <div style={{ color: 'red', margin: '1rem 0' }}>Fehler: {error}</div>}
+      {ollama.error && <div style={{ color: 'red', marginBottom: 8 }}>{ollama.error}</div>}
       <TranscriptEditor
         transcript={transcript}
         onTranscriptChange={isRecording ? () => {} : setTranscript}
@@ -108,7 +102,13 @@ function App() {
         audioBlob={audioBlob}
         alternatives={alternatives}
       />
-      {/* Ollama-Button und Stream-Ausgabe */}
+      <div>
+      <AudioRecorder
+        ref={audioRecorderRef as React.RefObject<{ cleanup: () => void } | null>}
+        onTranscriptChunk={handleTranscriptChunk}
+        onRecordingChange={handleRecordingChange}
+        onRecordingComplete={handleRecordingComplete}
+      />
       <button
         onClick={handleOllama}
         disabled={isRecording || !transcript.trim() || ollama.loading}
@@ -116,6 +116,7 @@ function App() {
       >
         {ollama.loading ? 'Ollama denkt...' : 'Ollama-Korrektur (asr-fixer)'}
       </button>
+      </div>
       <textarea
         value={ollama.output}
         readOnly
@@ -123,8 +124,6 @@ function App() {
         style={{ width: '100%', maxWidth: 420, minHeight: '4em', marginBottom: 8, background: '#f5f5f5' }}
         placeholder="Ollama-Output erscheint hier..."
       />
-      {ollama.error && <div style={{ color: 'red', marginBottom: 8 }}>{ollama.error}</div>}
-      <TrainButton />
     </div>
   )
 }
