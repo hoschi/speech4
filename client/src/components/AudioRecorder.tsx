@@ -1,4 +1,4 @@
-import React, { useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { z } from 'zod';
 
 // Zod-Schemas für VOSK-Formate
