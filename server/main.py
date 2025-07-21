@@ -43,10 +43,10 @@ model.eval()
 LM_PATH = "server/lm/4gram_de.klm"
 
 VOSK_MODEL_PATH = "server/models/vosk-model-de-0.21"
-if not os.path.exists(VOSK_MODEL_PATH):
-    raise RuntimeError(f"VOSK-Modell nicht gefunden unter {VOSK_MODEL_PATH}. Bitte gemäß README herunterladen.")
+# if not os.path.exists(VOSK_MODEL_PATH):
+    # raise RuntimeError(f"VOSK-Modell nicht gefunden unter {VOSK_MODEL_PATH}. Bitte gemäß README herunterladen.")
 
-vosk_model = Model(VOSK_MODEL_PATH)
+vosk_model = 0 # Model(VOSK_MODEL_PATH)
 app.state.custom_vocabulary = []
 
 def load_custom_vocabulary(app):
@@ -75,14 +75,14 @@ OVERLAP = STRIDE * 2
 @app.websocket("/ws/stream")
 async def websocket_stream(websocket: WebSocket):
     await websocket.accept()
-    
+
     # Erstelle einen VOSK-Recognizer mit dem optionalen Vokabular
     vocabulary = app.state.custom_vocabulary
     recognizer = KaldiRecognizer(vosk_model, 16000, json.dumps(vocabulary, ensure_ascii=False)) if vocabulary else KaldiRecognizer(vosk_model, 16000)
-    
+
     # Aktiviere mehrere Alternativen (N-Best-Liste)
     recognizer.SetMaxAlternatives(3)  # Erstelle bis zu 3 Alternativen
-    
+
     if vocabulary:
         print("[INFO] VOSK Recognizer mit benutzerdefiniertem Vokabular und N-Best-Alternativen initialisiert.")
     else:
@@ -92,23 +92,23 @@ async def websocket_stream(websocket: WebSocket):
         while True:
             # Empfange die nächste Nachricht vom Client
             message = await websocket.receive()
-            
+
             # Prüfe, ob es sich um Binärdaten (Audio) handelt
             if "bytes" in message and message["bytes"]:
                 audio_data = message["bytes"]
                 # Konvertiere bytes zu Int16Array für VOSK
                 import array
                 audio_array = array.array('h', audio_data)
-                
+
                 # Verarbeite das Audio, aber sende nur partielle Ergebnisse
                 # VOSK entscheidet selbst, wann es AcceptWaveform() True zurückgibt
                 # aber wir ignorieren das und senden nur PartialResult()
                 recognizer.AcceptWaveform(audio_array.tobytes())
-                
+
                 # Sende immer nur partielle Ergebnisse, nie finale
                 partial_result_json = recognizer.PartialResult()
                 await websocket.send_text(partial_result_json)
-            
+
             # Prüfe, ob es sich um eine Textnachricht handelt (für Steuersignale)
             elif "text" in message:
                 try:
@@ -119,12 +119,12 @@ async def websocket_stream(websocket: WebSocket):
                         # Sende ein spezielles finales Ergebnis
                         final_data = json.loads(final_result_json)
                         final_data['type'] = 'final'  # Markiere als finales Ergebnis
-                        
+
                         # VOSK gibt bereits Alternativen zurück, wenn SetMaxAlternatives gesetzt ist
                         # Die Alternativen sind in der JSON-Struktur enthalten
                         if 'alternatives' in final_data:
                             print(f"[INFO] VOSK lieferte {len(final_data['alternatives'])} echte Alternativen")
-                        
+
                         await websocket.send_text(json.dumps(final_data))
                         # Beende die Schleife, nachdem das Endergebnis gesendet wurde
                         break
