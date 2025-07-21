@@ -84,12 +84,12 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
         onChange={handleChange}
         className="transcript-input"
         disabled={uploaded || disabled}
-        style={{ resize: 'vertical', minHeight: '4em', maxWidth: 420 }}
+        style={{ resize: 'vertical', minHeight: '4em' }}
       />
       
       {/* Alternativen anzeigen */}
       {alternatives.length > 0 && (
-        <div style={{ marginTop: '1rem', width: '100%', maxWidth: 420 }}>
+        <div style={{ marginTop: '1rem', width: '100%' }}>
           <label style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem', display: 'block' }}>
             VOSK-Alternativen:
           </label>

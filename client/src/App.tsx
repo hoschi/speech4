@@ -66,7 +66,7 @@ function App() {
   const handleOllama = async () => {
     setOllama({ loading: true, error: null, output: '' });
     try {
-      const response = await fetch('http://localhost:8000/ollama/stream', {
+      const response = await fetch('/ollama/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: transcript })
@@ -119,9 +119,8 @@ function App() {
       </div>
       <textarea
         value={ollama.output}
-        readOnly
         rows={4}
-        style={{ width: '100%', maxWidth: 420, minHeight: '4em', marginBottom: 8, background: '#f5f5f5' }}
+        style={{ width: '100%', minHeight: '4em'}}
         placeholder="Ollama-Output erscheint hier..."
       />
     </div>
