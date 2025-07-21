@@ -1,66 +1,95 @@
 import './index.css'
-import AudioRecorder from './components/AudioRecorder'
-import type { TranscriptMessage } from './components/AudioRecorder'
-import TranscriptEditor from './components/TranscriptEditor'
-import TrainButton from './components/TrainButton'
-import { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
 
 function App() {
-  const [hypotheses, setHypotheses] = useState<TranscriptMessage[]>([])
-  const [userTranscript, setUserTranscript] = useState<string>('')
-  const [error, setError] = useState<string | null>(null)
+  const [transcript, setTranscript] = useState('')
+  const [correction, setCorrection] = useState('')
   const [isRecording, setIsRecording] = useState(false)
-  const audioRecorderRef = useRef<{ cleanup: () => void } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const transcriptRef = useRef<HTMLTextAreaElement>(null)
+  const correctionRef = useRef<HTMLTextAreaElement>(null)
 
-  // Diese Funktion wird an AudioRecorder übergeben, um Recording-Status zu setzen
-  const handleRecordingChange = (rec: boolean) => {
-    setIsRecording(rec)
-    if (rec) {
-      setUserTranscript('') // Editor leeren, wenn neue Aufnahme startet
-      setHypotheses([])
+  // Aufnahme-Logik (Dummy, bitte ggf. mit echter Logik ersetzen)
+  const handleRecord = () => {
+    setIsRecording(r => !r)
+    // Hier ggf. echte Aufnahme-Logik einbauen
+    if (!isRecording) {
+      setTranscript('')
+      setCorrection('')
     }
   }
 
-  const handleTranscriptChunk = (msg: TranscriptMessage) => {
-    console.log(msg)
-    if (msg.type === 'hypothesis') {
-      if (msg.text.trim() !== '') {
-        setHypotheses(prev => [...prev, msg])
-      }
-    } else if (msg.type === 'final') {
-      setHypotheses([])
-      if (msg.text.trim() !== '') {
-        setUserTranscript(msg.text)
-      }
-      // Ressourcen abbauen und Aufnahme-Status zurücksetzen
-      audioRecorderRef.current?.cleanup();
-      setIsRecording(false);
-    } else if (msg.type === 'error') {
-      setError(msg.message)
+  // Ollama-Korrektur
+  const handleCorrection = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ollama-correct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript })
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json()
+      setCorrection(data.correction || '')
+    } catch (e: any) {
+      setError(e.message || 'Fehler bei der Korrektur')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Laufendes Transkript aus Hypothesen zusammensetzen
-  const liveTranscript = hypotheses
-    .filter((h): h is { type: 'hypothesis', start: number, end: number, text: string } => h.type === 'hypothesis')
-    .sort((a, b) => a.start - b.start)
-    .map(h => h.text)
-    .join(' ')
-    .replace(/ +/g, ' ')
-    .trim()
-    //console.log(liveTranscript, hypotheses)
+  // In Zwischenablage kopieren
+  const handleCopy = async () => {
+    if (correctionRef.current) {
+      await navigator.clipboard.writeText(correctionRef.current.value)
+    }
+  }
 
   return (
-    <div className="app-card">
-      <h1>Speech-to-Text Streaming Demo</h1>
-      <AudioRecorder ref={audioRecorderRef} onTranscriptChunk={handleTranscriptChunk} onRecordingChange={handleRecordingChange} />
-      {error && <div style={{ color: 'red', margin: '1rem 0' }}>Fehler: {error}</div>}
-      <TranscriptEditor
-        transcript={isRecording ? liveTranscript : userTranscript}
-        setTranscript={isRecording ? () => {} : setUserTranscript}
+    <div style={{height:'100vh',width:'100vw',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'stretch',padding:0,margin:0,background:'#fff',boxSizing:'border-box'}}>
+      <textarea
+        ref={transcriptRef}
+        value={transcript}
+        onChange={e => setTranscript(e.target.value)}
+        placeholder="Transkript hier eingeben oder aufnehmen..."
+        style={{flex:'0 0 30%',fontSize:'1.2em',padding:'1em',border:'1px solid #ccc',borderRadius:'0.7em',margin:'1em',resize:'none',minHeight:80,maxHeight:200}}
         disabled={isRecording}
       />
-      <TrainButton />
+      <div style={{display:'flex',flexDirection:'row',gap:'1em',justifyContent:'center',alignItems:'center',margin:'0 1em'}}>
+        <button
+          onClick={handleRecord}
+          className={isRecording ? 'button-main stop' : 'button-main'}
+          style={{flex:1,minWidth:0}}
+        >
+          {isRecording ? 'Stop' : 'Aufnahme'}
+        </button>
+        <button
+          onClick={handleCorrection}
+          className='button-main'
+          style={{flex:1,minWidth:0}}
+          disabled={loading || !transcript.trim()}
+        >
+          {loading ? 'Korrigiere...' : 'Korrektur'}
+        </button>
+        <button
+          onClick={handleCopy}
+          className='button-main'
+          style={{flex:1,minWidth:0}}
+          disabled={!correction.trim()}
+        >
+          Kopieren
+        </button>
+      </div>
+      <textarea
+        ref={correctionRef}
+        value={correction}
+        onChange={e => setCorrection(e.target.value)}
+        placeholder="Korrigierter Text..."
+        style={{flex:'1 1 40%',fontSize:'1.2em',padding:'1em',border:'1px solid #ccc',borderRadius:'0.7em',margin:'1em',resize:'vertical',minHeight:100}}
+      />
+      {error && <div style={{color:'red',textAlign:'center',marginBottom:'1em'}}>{error}</div>}
     </div>
   )
 }
