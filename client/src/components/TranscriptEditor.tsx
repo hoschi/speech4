@@ -76,7 +76,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
   };
 
   return (
-    <div style={{ margin: '2rem 0', display: 'flex', flexDirection: 'row' }}>
+    <div>
       <textarea
         id="transcript"
         value={transcript}
@@ -89,7 +89,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
       
       {/* Alternativen anzeigen */}
       {alternatives.length > 0 && (
-        <div style={{ marginTop: '1rem', width: '100%' }}>
+        <div>
           <label style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem', display: 'block' }}>
             VOSK-Alternativen:
           </label>

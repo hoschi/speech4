@@ -12,6 +12,7 @@ export default defineConfig({
     proxy: {
       '/upload': 'http://localhost:8000',
       '/train': 'http://localhost:8000',
+      '/ollama/stream': 'http://localhost:8000',
     },
     https: true
   }

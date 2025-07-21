@@ -113,32 +113,29 @@ function App() {
         audioBlob={audioBlob}
         alternatives={alternatives}
       />
-      <div>
-      <AudioRecorder
-        ref={audioRecorderRef as React.RefObject<{ cleanup: () => void } | null>}
-        onTranscriptChunk={handleTranscriptChunk}
-        onRecordingChange={handleRecordingChange}
-        onRecordingComplete={handleRecordingComplete}
-      />
-      <button
-        onClick={handleOllama}
-        disabled={isRecording || !transcript.trim() || ollama.loading}
-        style={{ minWidth: 180, marginBottom: 8 }}
-      >
-        {ollama.loading ? 'Ollama denkt...' : 'Ollama-Korrektur (asr-fixer)'}
-      </button>
-      <button
-        onClick={handleCopyOllamaOutput}
-        style={{ minWidth: 180, marginBottom: 8 }}
-      >
-        copy
-      </button>
+      <div className='button-container'>
+        <AudioRecorder
+          ref={audioRecorderRef as React.RefObject<{ cleanup: () => void } | null>}
+          onTranscriptChunk={handleTranscriptChunk}
+          onRecordingChange={handleRecordingChange}
+          onRecordingComplete={handleRecordingComplete}
+        />
+        <button
+          onClick={handleOllama}
+          disabled={ollama.loading}
+        >
+          {ollama.loading ? 'Ollama denkt...' : 'Ollama-Korrektur (asr-fixer)'}
+        </button>
+        <button
+          onClick={handleCopyOllamaOutput}
+        >
+          copy
+        </button>
       </div>
       <textarea
         value={ollama.output}
         onChange={(e) => setOllama((curr) => ({...curr, output: e.target.value}))}
         rows={4}
-        style={{ width: '100%', minHeight: '4em'}}
         placeholder="Ollama-Output erscheint hier..."
       />
     </div>
