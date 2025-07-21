@@ -27,7 +27,7 @@ app = FastAPI()
 # CORS für React-Dev-Server aktivieren
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Port deines Vite-Servers
+    allow_origins=["http://localhost:5173", "http://192.168.178.68:5173"], # Port deines Vite-Servers und lokale IP
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -293,9 +293,14 @@ async def ollama_stream(req: OllamaRequest):
                             continue
     return StreamingResponse(stream_gen(), media_type="text/plain")
 
-@app.on_event("startup")
-def startup_event():
-    load_custom_vocabulary(app)
-
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, reload_dirs=["server"])
+    import sys
+    is_prod = "--prod" in sys.argv
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=not is_prod,
+        reload_dirs=["server"] if not is_prod else None,
+        log_level="info" if is_prod else "debug"
+    )
