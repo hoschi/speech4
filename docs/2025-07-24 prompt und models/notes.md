@@ -11,4 +11,8 @@ Temperatur war immer auf 0,3 gestellt.
 Was auch besser funktioniert hat zu meinem Prompt vorher war die Eingabe in `<note>` Tags zu umschließen, damit die KI unterscheiden kann, was eine Frage an sie ist und was Text, den sie übersetzen soll. Die Extraktion vom Transkript in die wichtigsten Daten kann man gleich machen, wenn in der UI die YouTube ID eingetragen wurde und zum Server geschickt wird.
 
 Der Prompt zur Extrahierung war einfach gehalten:
-Extrahiere alle Namen und technischen Begriffe aus diesem Text, außerdem erstelle eine Zusammenfassung des Videos bestehend aus 50 Worten.
+Extrahiere alle Namen und technischen Begriffe aus diesem Text, außerdem erstelle eine Zusammenfassung des Textes bestehend aus 50 Worten.
+
+Die 50-Wörter-Zusammenfassung soll wirklich nur dazu dienen, um ein Video über KIs von einem Video über Holzwerken unterscheiden zu können. So kann die KI schon sehr gut unterscheiden, ob es sich bei "Bank" um Finanzen oder die Sitzgelegenheit handelt.
+
+Was man natürlich auch noch machen kann ist auf Hugging Face zu sehen ob es spezielle Modelle für diesen Use Case gibt. Wichtig ist aber dann auch dass diese auf Deutsch mit englischen Begriffen trainiert wurde.
