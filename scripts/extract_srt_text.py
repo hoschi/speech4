@@ -5,17 +5,19 @@ import pysrt
 
 def extract_text_from_srt(srt_file_path):
     """
-    Extracts the text from an SRT subtitle file using the pysrt library.
+    Extracts the text from an SRT subtitle file using the pysrt library,
+    with line breaks removed.
 
     Args:
         srt_file_path (str): The path to the SRT file.
 
     Returns:
-        str: The extracted text.
+        str: The extracted text without line breaks.
     """
     try:
         subs = pysrt.open(srt_file_path, encoding='utf-8')
-        return subs.text
+        # Replace newlines with spaces to create a single line of text
+        return subs.text.replace('\n', ' ')
     except Exception as e:
         print(f"Error processing file {srt_file_path}: {e}")
         return None
