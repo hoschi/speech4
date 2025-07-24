@@ -7,9 +7,10 @@ transformers
 peft
 pyctcdecode
 kenlm
-python-multipart 
+python-multipart
 datasets
 soundfile
-jiwer 
-librosa 
-httpx 
+jiwer
+librosa
+httpx
+pysrt

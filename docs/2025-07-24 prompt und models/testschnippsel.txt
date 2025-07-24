@@ -1,0 +1,7 @@
+<notes>Benutzt auch [[Apify]], hier wird dir doch gesagt dass es bei dem kostenlosen plan 5 € im monat im wert von tokens um sonst gibt Was das Schema ist und warum sie das braucht erstehe ich nicht so wichtig Punkt</notes>
+
+<notes>Interessant ist auch dass ich versucht den promp so klein wie möglich zu halten, liegt das daran dass das Kontext window einfach zu klein ist bei der KI die sie benutzt? Das krasseste ist dass sie jetzt einfach jeden zweiten Vocal entfernt, weil die KI intelligent genug ist den Text trotzdem zu verstehen. </notes>
+
+<notes>Ich bin noch sehr un sicher was ich davon halten soll. Also dem Video ist generell schwer zu folgen da man immer nur die Knoten sieht und nicht den Überblick. Es werden auch zwei Plugins für osidian vorgestellt die sie benutzt, um mit der KI ihre Notizen zu verwalten bzw bearbeiten. </notes>
+
+<notes>Interessant ist noch die Tipps für den prompt. Anscheinend versteht zumindestens Chat GePT 4 markdown im prompt. Also fett geschriebener Text oder in großbuchstaben bedeuten für ihn dass man es ernst meint Punkt wenn gar nichts hilftKomma die gleiche Zeile drei mal kopieren Komma das hat bei ihr geholfen um Dinge zu forcieren die vorher nicht funktioniert haben.</notes>
