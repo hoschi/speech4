@@ -16,3 +16,10 @@ Extrahiere alle Namen und technischen Begriffe aus diesem Text, außerdem erstel
 Die 50-Wörter-Zusammenfassung soll wirklich nur dazu dienen, um ein Video über KIs von einem Video über Holzwerken unterscheiden zu können. So kann die KI schon sehr gut unterscheiden, ob es sich bei "Bank" um Finanzen oder die Sitzgelegenheit handelt.
 
 Was man natürlich auch noch machen kann ist auf Hugging Face zu sehen ob es spezielle Modelle für diesen Use Case gibt. Wichtig ist aber dann auch dass diese auf Deutsch mit englischen Begriffen trainiert wurde.
+
+Was auch klar erkenntlich ist, ist das eine bessere Spracherkennung sehr sinnvoll ist. Richtige Wörter im falschen Kontext werden von der LLM nicht erkannt bzw. behoben. Wenn die ASR aus "roten" das Wort "toten" macht und das nicht in den Satz passt bringt das die KI durch einander. Anscheinend kann sie nicht Wörter die keinen Sinn machen rechnerisch mit ihren gleich klingenden Kollegen vergleichen und das Wort nehmen das am meisten Sinn macht. Das könnte aber noch besser werden wenn man ihr eine "n-best" auswahl gibt was das ASR meint erkannt zu haben. Ich weiß nicht ob das mit dem aktuellen Setup möglich ist. Expliziet wurde das im Prompt aber auch nicht erwähnt, ggf. kann man hier nochmal nach arbeiten.
+
+* "Interessant ist auch dass ich versucht den promp so klein wie möglich zu halten"
+    * hier wird nicht erkannt das "ich" so keinen Sinn macht in dem Satz und das eigentlich "sie" eingesprochen wurde
+* "liegt das daran dass das Kontext window einfach zu klein ist"
+    * hier wurde von bei meinen Tests immer "Kontextfenster" statt "context window" von der KI genommen. Kann man sich jetzt streiten darüber was da sinnvoll ist. Ich finde letzteres weils ein stehender Begriff ist in der KI Szene.
