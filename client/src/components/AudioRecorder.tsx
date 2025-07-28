@@ -68,7 +68,7 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
     setWsStatus('connecting');
 
     // WebSocket verbinden
-    wsRef.current = new WebSocket('ws://localhost:8000/ws/stream');
+    wsRef.current = new WebSocket('/ws/stream');
     wsRef.current.binaryType = 'arraybuffer';
     wsRef.current.onopen = () => {
       setWsStatus('connected');
@@ -122,7 +122,7 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
       }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia({ 
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         sampleRate: 16000,
         channelCount: 1,
@@ -135,10 +135,10 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
     // AudioContext für PCM-Konvertierung erstellen
     audioContextRef.current = new AudioContext({ sampleRate: 16000 });
     const source = audioContextRef.current.createMediaStreamSource(stream);
-    
+
     // ScriptProcessor für PCM-Konvertierung
     processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-    
+
     processorRef.current.onaudioprocess = (event) => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         const inputData = event.inputBuffer.getChannelData(0);
@@ -220,4 +220,4 @@ const AudioRecorder = forwardRef((props: AudioRecorderProps, ref) => {
   );
 });
 
-export default AudioRecorder; 
+export default AudioRecorder;

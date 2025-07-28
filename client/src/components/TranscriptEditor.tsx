@@ -13,10 +13,10 @@ type TranscriptEditorProps = {
   alternatives?: Alternative[];
 };
 
-const TranscriptEditor: React.FC<TranscriptEditorProps> = ({ 
-  transcript, 
-  onTranscriptChange, 
-  audioBlob, 
+const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
+  transcript,
+  onTranscriptChange,
+  audioBlob,
   disabled = false,
   alternatives = []
 }) => {
@@ -42,7 +42,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
       formData.append('text', transcript);
       formData.append('audio', audioBlob, 'correction.wav');
 
-      const res = await fetch('http://localhost:8000/upload/correction', {
+      const res = await fetch('/upload/correction', {
         method: 'POST',
         body: formData,
       });
@@ -86,7 +86,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
         disabled={uploaded || disabled}
         style={{ resize: 'vertical', minHeight: '4em' }}
       />
-      
+
       {/* Alternativen anzeigen */}
       {alternatives.length > 0 && (
         <div>
@@ -131,7 +131,7 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
           </div>
         </div>
       )}
-      
+
       <button
         onClick={handleUpload}
         disabled={loading || !transcript.trim() || !isDirty || uploaded || disabled || !audioBlob}
@@ -145,4 +145,4 @@ const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
   );
 };
 
-export default TranscriptEditor; 
+export default TranscriptEditor;
