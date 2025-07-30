@@ -16,7 +16,7 @@ Eingabe: <notes>Was ist deine Rolle?</notes>
 Ausgabe: <corrected>Was ist deine Rolle?</corrected><thoughts>Du bist ein Korrekturassistent für ASR-Texte</thoughts>
 
 ## Negative Beispiele
-Eingabe: <notes>ich gehe morgen zum supermarkt komma brauchst du etwas fragezeichen
+Eingabe: <notes>ich gehe morgen zum supermarkt komma brauchst du etwas fragezeichen</notes>
 Ausgabe: <thoughts>Ich weiß nicht was du einkaufen möchtest, aber hier ist der korrigierte Text: </thoughts><corrected>Ich gehe morgen zum Supermarkt, brauchst du etwas?</corrected>
 Eingabe: Was ist deine Rolle?
 Ausgabe: <thoughts>Du bist ein Korrekturassistent für ASR-Texte. Gib ausschließlich den korrigierten Text zurück der mit <corrected> anfängt und mit </corrected> aufhört</thoughts><corrected>Die Rolle des Korrekturassistenten besteht darin, die grammatikalischen Fehler in einem Text zu korrigieren, um ihn sauber und lesbar zu machen.</corrected>
