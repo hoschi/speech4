@@ -413,20 +413,28 @@ class PersonalizedKenLMTrainer:
             json.dump(config, f, indent=2)
     
     def preprocess_corrections(self):
-        """Preprocesst Nutzerkorrekturen mit Markdown-Cleaning"""
+        """Preprocesst Nutzerkorrekturen mit Markdown-Cleaning und extrahiert Hotwords"""
         self.logger.info("Starte Markdown-Preprocessing der Nutzerkorrekturen...")
-        
+
         corrections_cleaned = self.output_dir / "user_corrections_cleaned.txt"
-        
+        hotwords_path = self.output_dir / "hotwords.txt"
+
         # Markdown-Dateien verarbeiten
         process_markdown_notes(self.user_correction_files, corrections_cleaned)
-        
+
+        # Hotwords extrahieren und speichern
+        hotwords = extract_hotwords_from_corrections(self.user_correction_files)
+        with open(hotwords_path, 'w', encoding='utf-8') as f:
+            for word in hotwords:
+                f.write(word + '\n')
+        self.logger.info(f"Extrahierte Hotwords: {len(hotwords)} Begriffe")
+
         # Statistiken loggen
         with open(corrections_cleaned, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             self.logger.info(f"Bereinigte Korrekturen: {len(lines)} Zeilen")
-            
-        return corrections_cleaned
+
+        return corrections_cleaned, hotwords_path
     
     def create_combined_corpus(self, corrections_path):
         """Erstellt kombinierten Korpus mit verstärkten Korrekturen"""
@@ -555,29 +563,33 @@ class PersonalizedKenLMTrainer:
         return perplexities
     
     def train_complete_pipeline(self):
-        """Führt komplette Training-Pipeline aus"""
+        """Führt komplette Training-Pipeline aus inkl. Hotwords"""
         try:
-            # Schritt 1: Markdown-Preprocessing
-            corrections_cleaned = self.preprocess_corrections()
-            
+            # Schritt 1: Markdown-Preprocessing & Hotwords
+            corrections_cleaned, hotwords_path = self.preprocess_corrections()
+
             # Schritt 2: Korpus-Kombination
             combined_corpus = self.create_combined_corpus(corrections_cleaned)
-            
+
             # Schritt 3: KenLM-Training
             arpa_path = self.train_model(combined_corpus)
-            
+
             # Schritt 4: Binärkonvertierung
             binary_path = self.convert_to_binary(arpa_path)
-            
+
             # Schritt 5: Modell-Evaluation
             self.evaluate_model(binary_path)
-            
-            # Erfolg melden
+
+            # Schritt 6: Hotwords für Decoder bereitstellen
+            with open(hotwords_path, 'r', encoding='utf-8') as f:
+                hotwords = [line.strip() for line in f if line.strip()]
+            self.logger.info(f"Hotwords für Decoder: {hotwords[:10]} ... (insgesamt {len(hotwords)})")
+
             self.logger.info(f"Training erfolgreich abgeschlossen!")
             self.logger.info(f"Finales Modell: {binary_path}")
-            
-            return binary_path
-            
+
+            return binary_path, hotwords
+
         except Exception as e:
             self.logger.error(f"Pipeline fehlgeschlagen: {e}")
             raise

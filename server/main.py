@@ -9,16 +9,24 @@ import json
 
 # Importiere die zentrale ASR-Modell-Klasse und Initialisierungsfunktionen
 from asr_model import ASRModel, LM_PATH
+import pathlib
 import os
 
 app = FastAPI()
 
 # --- Globale Objekte ---
 asr_model = ASRModel()
+# Hotwords laden, falls vorhanden
+hotwords_path = pathlib.Path("personalized_lm_output/hotwords.txt")
+hotwords = None
+if hotwords_path.exists():
+    with open(hotwords_path, "r", encoding="utf-8") as f:
+        hotwords = [line.strip() for line in f if line.strip()]
+    print(f"[INFO] Hotwords für Decoder geladen: {hotwords[:10]} ... (insgesamt {len(hotwords)})")
 # Prüfe, ob KenLM-Modell existiert, ansonsten Fehler und Abbruch
 if not os.path.isfile(LM_PATH):
     raise RuntimeError(f"[ERROR] KenLM-Modell nicht gefunden unter {LM_PATH}. Bitte zuerst mit 'python -m server.train_lm' trainieren.")
-app.state.decoder = asr_model.build_decoder(alpha=0.45, beta=-1.1)
+app.state.decoder = asr_model.build_decoder(alpha=0.45, beta=-1.1, hotwords=hotwords)
 if app.state.decoder:
     print(f"[INFO] Standard-Decoder erfolgreich geladen.")
 else:

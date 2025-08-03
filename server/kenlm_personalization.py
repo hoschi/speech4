@@ -95,7 +95,7 @@ class KenLMManager:
     def load_model(self):
         available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
         print(f"Verfügbarer Speicher: {available_memory:.2f} GB")
-        self.model = kenlm.Model(self.model_path)
+        self.model = kenlm.Model(str(self.model_path))
         process = psutil.Process(os.getpid())
         memory_usage = process.memory_info().rss / 1024 / 1024 / 1024
         print(f"Speicherverbrauch nach Laden: {memory_usage:.2f} GB")
@@ -152,11 +152,31 @@ class PersonalizedKenLMTrainer:
     def preprocess_corrections(self):
         self.logger.info("Starte Markdown-Preprocessing der Nutzerkorrekturen...")
         corrections_cleaned = self.output_dir / "user_corrections_cleaned.txt"
+        hotwords_path = self.output_dir / "hotwords.txt"
         process_markdown_notes(self.user_correction_files, corrections_cleaned)
+        # Hotwords extrahieren und speichern
+        hotwords = self.extract_hotwords_from_corrections(self.user_correction_files)
+        with open(hotwords_path, 'w', encoding='utf-8') as f:
+            for word in hotwords:
+                f.write(word + '\n')
+        self.logger.info(f"Extrahierte Hotwords: {len(hotwords)} Begriffe")
         with open(corrections_cleaned, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             self.logger.info(f"Bereinigte Korrekturen: {len(lines)} Zeilen")
-        return corrections_cleaned
+        return corrections_cleaned, hotwords_path
+
+    @staticmethod
+    def extract_hotwords_from_corrections(correction_files):
+        hotwords = set()
+        for filename in correction_files:
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+                cleaned = clean_markdown_for_kenlm(content)
+                domain_terms = re.findall(r'\b[A-ZÄÖÜ][a-zäöüß]{4,}\b', cleaned)
+                hotwords.update(domain_terms)
+                wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
+                hotwords.update(wiki_terms)
+        return list(hotwords)
     def create_combined_corpus(self, corrections_path):
         self.logger.info("Erstelle kombinierten Korpus...")
         combined_corpus = self.output_dir / "combined_corpus.txt"
@@ -245,14 +265,17 @@ class PersonalizedKenLMTrainer:
         return perplexities
     def train_complete_pipeline(self):
         try:
-            corrections_cleaned = self.preprocess_corrections()
+            corrections_cleaned, hotwords_path = self.preprocess_corrections()
             combined_corpus = self.create_combined_corpus(corrections_cleaned)
             arpa_path = self.train_model(combined_corpus)
             binary_path = self.convert_to_binary(arpa_path)
             self.evaluate_model(binary_path)
+            # Hotwords laden
+            with open(hotwords_path, 'r', encoding='utf-8') as f:
+                hotwords = [line.strip() for line in f if line.strip()]
             self.logger.info(f"Training erfolgreich abgeschlossen!")
             self.logger.info(f"Finales Modell: {binary_path}")
-            return binary_path
+            return binary_path, hotwords
         except Exception as e:
             self.logger.error(f"Pipeline fehlgeschlagen: {e}")
             raise

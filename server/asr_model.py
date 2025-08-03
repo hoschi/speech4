@@ -155,26 +155,28 @@ class ASRModel:
             
         return logits.cpu().numpy()
 
-    def build_decoder(self, alpha=0.2, beta=-1.0, lm_path=LM_PATH):
-        """Erstellt und gibt einen CTC-Decoder mit den angegebenen Parametern zurück."""
+    def build_decoder(self, alpha=0.2, beta=-1.0, lm_path=LM_PATH, hotwords=None):
+        """Erstellt und gibt einen CTC-Decoder mit den angegebenen Parametern und Hotwords zurück."""
         if not os.path.isfile(lm_path):
             print(f"[WARN] KenLM-Modell unter {lm_path} nicht gefunden. Decoder wird ohne Sprachmodell erstellt.")
             return None
-            
         return build_ctcdecoder(
             labels=self.labels,
             kenlm_model_path=lm_path,
             alpha=alpha,
-            beta=beta
+            beta=beta,
+            hotwords=hotwords
         )
 
-    def decode_logits(self, logits, decoder=None):
+    def decode_logits(self, logits, decoder=None, hotwords=None, hotword_weight=10.0):
         """
-        Dekodiert Logits zu Text. Verwendet den übergebenen Decoder oder fällt
-        auf simples ArgMax-Decoding zurück.
+        Dekodiert Logits zu Text. Verwendet den übergebenen Decoder und Hotwords oder fällt auf simples ArgMax-Decoding zurück.
         """
         if decoder:
-            return decoder.decode(logits)
+            if hotwords:
+                return decoder.decode(logits, hotwords=hotwords, hotword_weight=hotword_weight)
+            else:
+                return decoder.decode(logits)
         else:
             predicted_ids = torch.argmax(torch.from_numpy(logits), dim=-1)
             return self.processor.batch_decode([predicted_ids.tolist()])[0]

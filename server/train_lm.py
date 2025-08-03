@@ -50,8 +50,9 @@ def main():
         user_correction_files=all_personalization_files,
         output_dir=OUTPUT_DIR
     )
-    model_path = trainer.train_complete_pipeline()
+    model_path, hotwords = trainer.train_complete_pipeline()
     print(f"[SUCCESS] KenLM-Modell gespeichert unter: {model_path}")
+    print(f"[INFO] Hotwords extrahiert: {hotwords[:10]} ... (insgesamt {len(hotwords)})")
 
 if __name__ == "__main__":
     main()
