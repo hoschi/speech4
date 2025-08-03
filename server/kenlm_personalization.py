@@ -109,11 +109,18 @@ class PersonalizedKenLMTrainer:
         self.user_correction_files = [Path(f) for f in user_correction_files]
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
+        # Logging in server/reports/training
+        reports_dir = Path("server/reports/training")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        # Commit-Hash für eindeutige Zuordnung
+        from server.utils import get_current_commit_hash
+        commit_hash = get_current_commit_hash()
+        log_path = reports_dir / f"training_{self.output_dir.name}_{commit_hash}.log"
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler(self.output_dir / 'training.log'),
+                logging.FileHandler(log_path),
                 logging.StreamHandler()
             ]
         )
@@ -238,5 +245,4 @@ class PersonalizedKenLMTrainer:
         except Exception as e:
             self.logger.error(f"Pipeline fehlgeschlagen: {e}")
             raise
-
 

@@ -7,7 +7,7 @@ server/venv/
 server/lm/
 *.bin
 *.arpa
-german_base_corpus.txt
+german_base_corpus*.txt
 server/data/
 server/data/
 server/models/

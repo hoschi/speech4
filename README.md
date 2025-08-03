@@ -5,7 +5,8 @@
 - **client/**: React-Frontend für Audioaufnahme, Transkriptanzeige und Korrektureingabe.
 - **server/**: Python-Backend (FastAPI) für Streaming-ASR, Korrektur-Upload, KenLM-Training und Modellbereitstellung.
   - **server/data/**: Enthält Trainingsdaten für das Sprachmodell (z.B. `corpus.txt`, Logdateien, temporäre Dateien).
-  - **server/corrections/**: Gespeicherte Korrekturtexte und (optional) zugehörige Audiodateien, die von Nutzern hochgeladen wurden.
+  - **server/corrections/**: Gespeicherte Korrekturtexte (reine ASR-Ergebnisse, keine Formatierung, kein Cleaning nötig) und (optional) zugehörige Audiodateien, die von Nutzern hochgeladen wurden.
+  - **server/markdown_input_raw/**: Markdown-Notizen des Nutzers für die Personalisierung (werden vor dem Training automatisch bereinigt/gecleaned).
   - **server/lm/**: Fertig trainierte und komprimierte KenLM-Modelle (z.B. `4gram_de.klm`) für die Inferenz.
   - **server/venv/**: (optional) Python-virtuelle Umgebung für das Backend.
 - **docs/**: Dokumentation, Workflows, Codebeispiele und Referenzen.
@@ -52,11 +53,16 @@ pip install ./kenlm
 ```
 
 
+
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
 ```bash
 source server/venv/bin/activate
 python -m server.train_lm
 ```
+
+**Personalisierungsdaten:**
+- Korrekturen: Lege reine Textdateien (ASR-Ergebnisse, keine Formatierung) in `server/corrections/` ab.
+- Markdown-Notizen: Lege Markdown-Dateien (`*.md`) in `server/markdown_input_raw/` ab. Diese werden beim Training automatisch bereinigt und verstärkt in den Korpus integriert.
 
 ### 6. Server starten
 ```bash
@@ -66,7 +72,7 @@ python -m server.main
 
 **Hinweis:**
 
-Der Server startet nur, wenn ein fertiges KenLM-Modell (`server/lm/4gram_de.klm`) existiert. Das Training erfolgt über das Hauptskript `server/train_lm.py` und nutzt den Basis-Korpus sowie alle Korrekturen in `server/corrections/`.
+Der Server startet nur, wenn ein fertiges KenLM-Modell (`server/lm/4gram_de.klm`) existiert. Das Training erfolgt über das Hauptskript `server/train_lm.py` und nutzt den Basis-Korpus, alle Korrekturen in `server/corrections/` sowie alle Markdown-Notizen in `server/markdown_input_raw/`.
 
 ## KenLM-Binaries für Training verfügbar machen
 

@@ -1,4 +1,5 @@
 import subprocess
+from server.utils import get_current_commit_hash
 from constants import ALPHA_RANGE
 import os
 import glob
@@ -17,11 +18,7 @@ BASE_REPORT_DIR = os.path.join("server", "reports", "tune-decoder")
 # HELFER-FUNKTIONEN
 # ==============================================================================
 
-def get_git_commit_hash():
-    try:
-        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
-    except Exception:
-        return "nogit"
+
 
 def get_completed_alphas():
     """Liest die bereits abgeschlossenen Alpha-Werte aus der Fortschrittsdatei."""
@@ -91,7 +88,7 @@ def summarize_results(REPORT_DIR, PROGRESS_FILE):
     print(f"Beste avg. WER: {best_wer:.4f}")
 
     # 4. Schreibe die finale, zusammengefasste CSV-Datei
-    commit = get_git_commit_hash()
+    commit = get_current_commit_hash()
     summary_path = os.path.join(REPORT_DIR, f'{commit}_final_summary.csv')
     try:
         with open(summary_path, 'w', newline='', encoding='utf-8') as f:
@@ -138,7 +135,7 @@ def get_best_wer_so_far(REPORT_DIR):
 # ==============================================================================
 
 if __name__ == "__main__":
-    commit = get_git_commit_hash()
+    commit = get_current_commit_hash()
     REPORT_DIR = os.path.join(BASE_REPORT_DIR, commit)
     PROGRESS_FILE = os.path.join(REPORT_DIR, 'progress.txt')
 
