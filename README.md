@@ -57,7 +57,7 @@ pip install ./kenlm
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
 ```bash
 source server/venv/bin/activate
-python -m server.train_lm
+python server/train_lm.py
 ```
 
 **Personalisierungsdaten:**
@@ -67,7 +67,7 @@ python -m server.train_lm
 ### 6. Server starten
 ```bash
 source server/venv/bin/activate
-python -m server.main
+python server/main.py
 ```
 
 **Hinweis:**

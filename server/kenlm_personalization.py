@@ -37,7 +37,7 @@ def normalize_text_for_asr(text):
     text = re.sub(r'\d+', '<NUM>', text)
     text = re.sub(r'https?://\S+', '', text)
     text = re.sub(r'\S+@\S+', '', text)
-    text = re.sub(r'["]"''‛„"‚']', '"', text)
+    text = re.sub(r'["‟‛„‚]', '"', text)
     text = re.sub(r'[–—]', '-', text)
     text = re.sub(r'([.!?])\s*', r'\1 ', text)
     text = re.sub(r'\s+', ' ', text.strip())
@@ -113,7 +113,7 @@ class PersonalizedKenLMTrainer:
         reports_dir = Path("server/reports/training")
         reports_dir.mkdir(parents=True, exist_ok=True)
         # Commit-Hash für eindeutige Zuordnung
-        from server.utils import get_current_commit_hash
+        from utils import get_current_commit_hash
         commit_hash = get_current_commit_hash()
         log_path = reports_dir / f"training_{self.output_dir.name}_{commit_hash}.log"
         logging.basicConfig(
@@ -165,7 +165,7 @@ class PersonalizedKenLMTrainer:
         temp_dir = self.output_dir / "temp"
         temp_dir.mkdir(exist_ok=True)
         cmd = [
-            "../kenlm/bin/lmplz",
+            "kenlm/build/bin/lmplz",
             "-o", "4",
             "--prune", "0", "1", "1", "1",
             "-S", "80%",
@@ -187,7 +187,7 @@ class PersonalizedKenLMTrainer:
         self.logger.info("Konvertiere zu optimiertem Binärformat...")
         binary_path = self.output_dir / "model.klm"
         cmd = [
-            "../kenlm/bin/build_binary",
+            "kenlm/build/bin/build_binary",
             "-a", "22",
             "-q", "8",
             "-b", "8",
