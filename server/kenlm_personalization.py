@@ -15,6 +15,16 @@ import psutil
 # Markdown-Cleaning
 
 def clean_markdown_for_kenlm(text):
+    # YAML-Frontmatter am Anfang entfernen
+    if text.startswith('---'):
+        lines = text.splitlines()
+        end_idx = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == '---':
+                end_idx = i
+                break
+        if end_idx is not None:
+            text = '\n'.join(lines[end_idx+1:])
     text = re.sub(r'^#{1,6}\s+(.+)$', r'\1', text, flags=re.MULTILINE)
     text = re.sub(r'^\s*[-*+]\s+(.+)$', r'\1', text, flags=re.MULTILINE)
     text = re.sub(r'^\s*\d+\.\s+(.+)$', r'\1', text, flags=re.MULTILINE)
@@ -172,7 +182,8 @@ class PersonalizedKenLMTrainer:
             "-T", str(temp_dir),
             "--text", str(corpus_path),
             "--arpa", str(arpa_path),
-            "--verbose_header"
+            "--verbose_header",
+            "--skip_symbols"
         ]
         self.logger.info(f"Führe aus: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
