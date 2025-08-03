@@ -1,5 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" class="logo" width="120"/>
-
 # KenLM Language Model Training mit Markdown-Preprocessing: **Komplette Anleitung**
 
 ## Überblick des Verfahrens
@@ -188,7 +186,7 @@ bin/lmplz -o 4 \
     - Position 2 (Trigramme): Nur n-Gramme mit Häufigkeit ≥ 1
     - Position 3 (4-Gramme): Nur n-Gramme mit Häufigkeit ≥ 1
 - **`-S 80%`**: Verwendet 80% des verfügbaren RAMs (angepasst an deine 32GB)
-- **`-T /tmp/kenlm_temp`**: Temporäres Verzeichnis für Zwischendateien
+- **`-T ./kenlm_temp`**: Temporäres Verzeichnis für Zwischendateien
 
 
 ### Erweiterte Trainingsoptionen für große Korpora

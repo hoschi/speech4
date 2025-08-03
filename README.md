@@ -51,16 +51,25 @@ source server/venv/bin/activate
 pip install ./kenlm
 ```
 
-### 5. Server starten
+
+### 5. KenLM-Modell trainieren (Basis + Personalisierung)
+```bash
+source server/venv/bin/activate
+python -m server.train_lm
+```
+
+### 6. Server starten
 ```bash
 source server/venv/bin/activate
 python -m server.main
 ```
 
 **Hinweis:**
-Starte das Backend immer mit `python -m server.main` (nicht mit `python server/main.py`), damit Python die Imports korrekt auflöst. Andernfalls kommt es zu `ModuleNotFoundError: No module named 'server'`.
+
+Der Server startet nur, wenn ein fertiges KenLM-Modell (`server/lm/4gram_de.klm`) existiert. Das Training erfolgt über das Hauptskript `server/train_lm.py` und nutzt den Basis-Korpus sowie alle Korrekturen in `server/corrections/`.
 
 ## KenLM-Binaries für Training verfügbar machen
+
 
 Nach dem Kompilieren von KenLM (siehe oben) müssen die Binaries `lmplz` und `build_binary` für das Training im Backend verfügbar sein. Das geht am einfachsten per Symlink in das venv-Bin-Verzeichnis:
 
@@ -69,8 +78,7 @@ ln -sf $(pwd)/kenlm/build/bin/lmplz server/venv/bin/lmplz
 ln -sf $(pwd)/kenlm/build/bin/build_binary server/venv/bin/build_binary
 ```
 
-- Dadurch findet das Backend die Tools automatisch, wenn das Training per API oder UI ausgelöst wird.
-- Diese Symlinks (und das gesamte venv-Verzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
+Dadurch findet das Backend die Tools automatisch, wenn das Training per Skript ausgelöst wird. Diese Symlinks (und das gesamte venv-Verzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
 
 ## KenLM-Optimierung für 32GB RAM
 
@@ -92,35 +100,9 @@ Das System implementiert automatische KenLM-Optimierung für große Sprachmodell
 
 ## Basis-Korpus für initiales Training (Fallback)
 
-Falls noch nie ein Training stattgefunden hat und keine Korrekturdaten vorliegen, kannst du einen großen deutschen Korpus als Startpunkt nutzen. Empfohlen wird OSCAR-2301:
-
-### Schritt 1: Hugging Face Account & Token
-- Erstelle einen Account auf https://huggingface.co
-- Gehe zu Settings → Access Tokens und erstelle einen Token (mind. Read-Berechtigung)
-
-### Schritt 2: Zugang zum Dataset beantragen
-- Besuche https://huggingface.co/datasets/oscar-corpus/OSCAR-2301
-- Akzeptiere die Nutzungsbedingungen (meist sofort freigeschaltet)
-
-### Schritt 3: Authentifizierung mit huggingface-cli
-```bash
-pip install huggingface_hub[cli]
 huggingface-cli login
-# Gib deinen Token ein
-```
 
-### Schritt 4: Download/Streaming mit der datasets library
-
-- Führe das Skript nach erfolgreichem Login in deiner venv aus:
-```bash
-source server/venv/bin/activate
-pip install datasets
-pip install zstandard
-python scripts/extract_oscar_german.py
-```
-
-- Die Datei `german_base_corpus.txt` kann als Ausgangspunkt für das initiale KenLM-Training verwendet werden, bis genügend echte Korrekturen gesammelt wurden.
-- Für produktive Nutzung: Korpus regelmäßig mit echten Nutzerdaten/Korrekturen ergänzen!
+Falls noch keine Korrekturdaten vorliegen, nutze einen großen deutschen Korpus als Startpunkt (z.B. OSCAR-2301). Die Datei `server/data/german_base_corpus.txt` wird als Basis verwendet. Für produktive Nutzung: Korpus regelmäßig mit echten Nutzerdaten/Korrekturen ergänzen!
 
 ## Hyperparameter-Tuning für Decoder (Common Voice DE)
 

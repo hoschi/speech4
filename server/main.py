@@ -8,16 +8,16 @@ import datetime
 import json
 
 # Importiere die zentrale ASR-Modell-Klasse und Initialisierungsfunktionen
-from asr_model import ASRModel, ensure_kenlm_model, train_kenlm_pipeline
+from asr_model import ASRModel, LM_PATH
+import os
 
 app = FastAPI()
 
 # --- Globale Objekte ---
-# Lade das ASR-Modell und den Prozessor beim Start.
 asr_model = ASRModel()
-# Stelle sicher, dass ein KenLM-Modell existiert, bevor der Decoder gebaut wird.
-ensure_kenlm_model()
-# Baue den Standard-Decoder für die App.
+# Prüfe, ob KenLM-Modell existiert, ansonsten Fehler und Abbruch
+if not os.path.isfile(LM_PATH):
+    raise RuntimeError(f"[ERROR] KenLM-Modell nicht gefunden unter {LM_PATH}. Bitte zuerst mit 'python -m server.train_lm' trainieren.")
 app.state.decoder = asr_model.build_decoder(alpha=0.45, beta=-1.1)
 if app.state.decoder:
     print(f"[INFO] Standard-Decoder erfolgreich geladen.")
@@ -133,22 +133,7 @@ async def upload_correction(text: str = Form(...), audio: UploadFile = File(None
     return {"status": "ok", "text_file": text_path, "audio_file": audio_path}
 
 
-@app.post("/train/lm")
-def train_lm():
-    """
-    Führt die zentralisierte KenLM-Trainingspipeline aus und lädt den Decoder neu.
-    """
-    try:
-        output = train_kenlm_pipeline()
-        # Lade den Decoder mit dem neuen Sprachmodell neu
-        app.state.decoder = asr_model.build_decoder(alpha=0.2, beta=-1.0)
-        if app.state.decoder:
-            print("[INFO] Decoder nach Training neu geladen.")
-        else:
-             print("[WARN] Konnte Decoder nach Training nicht neu laden.")
-        return JSONResponse(content={"status": "success", "output": output})
-    except Exception as e:
-        return JSONResponse(content={"status": "error", "output": str(e)}, status_code=500)
+
 
 
 if __name__ == "__main__":

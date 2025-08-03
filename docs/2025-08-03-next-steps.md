@@ -24,11 +24,11 @@
   - Adapter gezielt auf Fehlerwörter und Korrekturen trainieren.
   - Testen, ob Feintuning die Fehler bei schwierigen Wörtern reduziert.
 
-### 3. Monitoring & Logging
+### 3. Monitoring & Logging (Zukunft)
 - Monitoring einrichten, um Fehlerwörter und deren Entwicklung gezielt zu tracken.
 - Übersicht über Trainingsdaten und Modellversionen bereitstellen.
 
-### 4. Forced Alignment (optional)
+### 4. Forced Alignment (Zukunft)
 - Für exaktere Wortgrenzen und Zeitstempel, aber kein direkter Einfluss auf WER.
 
 ## Fazit
