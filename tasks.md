@@ -94,18 +94,25 @@ https://www.perplexity.ai/search/bei-meinem-aktuellen-projekt-h-p3YQ8JYSQ0eC2zto
     - wav2vec2-S ist nicht verfügbar ist falsch, ich hab das gefunden:
         - [biaofuxmu/wav2vec-S: Code for ACL 2024 findings paper "wav2vec-S: Adapting Pre-trained Speech Models for Streaming"](https://github.com/biaofuxmu/wav2vec-S)
         - [biaofu-xmu/wav2vec-S-Large-ft-960h · Hugging Face](https://huggingface.co/biaofu-xmu/wav2vec-S-Large-ft-960h)
-        - [ ] decoder tune run um WER zu vergleichen
+        - [x] decoder tune run um WER zu vergleichen
 
-### 3. Genauere Wortgrenzen und Alignment
-- [ ] **Forced Alignment auf CTC-Logits:**
-    - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`)
+### 4. Fachbegriffe, Namen, Fremdwörter
+
+- siehe `./docs/2025-08-03-next-steps.md`
+- [ ] **personalisiertes KenLM:**
+    - Durch eigene Notizen KenLM personalisieren
+    - siehe `./docs/2025-07-31-kenlm-personalisierung.md`
+- [ ] **Hotword-Boosting:**
+    - Boost-Words/Fachbegriffe mit erhöhtem Score via pyctcdecode
 
 ### 4. Kontinuierliche Personalisierung
 - [ ] **Adapter-Feintuning per LoRA + EWC:**
     - Nutzer-Korrekturen werden für LoRA-Feintuning (r=16, α=32, EWC) genutzt und als Adapter deployed
     - Automatisierter Trainings-Endpoint nach jeder Session
-- [ ] **Hotword-Boosting:**
-    - Boost-Words/Fachbegriffe mit erhöhtem Score via pyctcdecode
+
+### 3. Genauere Wortgrenzen und Alignment
+- [ ] **Forced Alignment auf CTC-Logits:**
+    - Dynamische Programmierung über CTC-Logit-Lattice für exakte Wort-Zeitstempel (z. B. mit `ctc-forced-aligner`)
 
 ### 5. LLM-gestütztes Rescoring
 - [ ] **Zweite Pass-Rescoring mit Transformer-LM:**
