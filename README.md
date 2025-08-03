@@ -119,7 +119,7 @@ Falls noch keine Korrekturdaten vorliegen, nutze einen großen deutschen Korpus 
   ```bash
   python scripts/extract_oscar_german.py
   ```
-  Die erzeugte Datei kann dann nach `server/data/german_base_corpus.txt` verschoben werden. Bei Fehler, siehe https://www.perplexity.ai/search/traceback-most-recent-call-las-AHUyIVFcRsmr2CuKNJgqww
+  Die erzeugte Datei kann dann nach `server/data/german_base_corpus.txt` verschoben werden. Bei Fehler, siehe hier wie man in pip module löscht und neu installiert. https://www.perplexity.ai/search/traceback-most-recent-call-las-AHUyIVFcRsmr2CuKNJgqww
 
 - **calc_max_examples.py**
   Berechnet die maximal sinnvolle Anzahl an Beispielen (`N_VALIDATION`) für das Hyperparameter-Tuning, sodass ein Grid-Search-Lauf in ca. 13 Stunden abgeschlossen werden kann. Das Skript benötigt die durchschnittliche Zeit pro Kombination (z.B. aus einem Testlauf mit DEBUG=true).
