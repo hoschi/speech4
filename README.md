@@ -108,7 +108,27 @@ Das System implementiert automatische KenLM-Optimierung für große Sprachmodell
 
 huggingface-cli login
 
-Falls noch keine Korrekturdaten vorliegen, nutze einen großen deutschen Korpus als Startpunkt (z.B. OSCAR-2301). Die Datei `server/data/german_base_corpus.txt` wird als Basis verwendet. Für produktive Nutzung: Korpus regelmäßig mit echten Nutzerdaten/Korrekturen ergänzen!
+Falls noch keine Korrekturdaten vorliegen, nutze einen großen deutschen Korpus als Startpunkt (z.B. OSCAR-2301). Die Datei `server/data/german_base_corpus.txt` wird als Basis verwendet.
+
+### Skripte im `scripts`-Ordner
+
+- **extract_oscar_german.py**
+  Erstellt einen deutschen Basiskorpus aus dem OSCAR-Datensatz (Huggingface). Die Zielgröße kann im Skript angepasst werden (Standard: 40GB). Das Skript schreibt alle deutschen Textbeispiele mit mindestens 10 Wörtern in die Datei `german_base_corpus.txt`.
+  
+  **Ausführung:**
+  ```bash
+  python scripts/extract_oscar_german.py
+  ```
+  Die erzeugte Datei kann dann nach `server/data/german_base_corpus.txt` verschoben werden.
+
+- **calc_max_examples.py**
+  Berechnet die maximal sinnvolle Anzahl an Beispielen (`N_VALIDATION`) für das Hyperparameter-Tuning, sodass ein Grid-Search-Lauf in ca. 13 Stunden abgeschlossen werden kann. Das Skript benötigt die durchschnittliche Zeit pro Kombination (z.B. aus einem Testlauf mit DEBUG=true).
+  
+  **Ausführung:**
+  ```bash
+  python scripts/calc_max_examples.py -t <Sekunden pro Kombination>
+  ```
+  Die Ausgabe zeigt die optimale Beispielanzahl für den nächsten Tuning-Run.
 
 ## Hyperparameter-Tuning für Decoder (Common Voice DE)
 
@@ -118,6 +138,7 @@ Hierfür muss `datasets==3.6.0` eingestellt werden, da die v4 die Daten von Comm
 
 ### Voraussetzungen
 - KenLM-Modell liegt vor (z.B. `server/lm/4gram_de.klm`)
+- Die optimale Beispielanzahl kann mit `scripts/calc_max_examples.py` berechnet werden (siehe oben).
 
 ### Ausführung
 

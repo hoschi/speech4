@@ -2,7 +2,7 @@ from datasets import load_dataset
 import os
 import time
 
-TARGET_SIZE_GB = 40
+TARGET_SIZE_GB = 4
 TARGET_SIZE_BYTES = TARGET_SIZE_GB * 1024 * 1024 * 1024
 
 
