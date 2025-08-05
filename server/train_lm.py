@@ -6,9 +6,11 @@ Verwendet Basis-Korpus und alle Korrekturen in server/corrections/
 import os
 import glob
 import sys
+import argparse
 from kenlm_personalization import PersonalizedKenLMTrainer
 
 BASE_CORPUS = "server/data/german_base_corpus.txt"
+BASE_ARPA = "server/lm/base_model.arpa"
 CORRECTIONS_DIR = "server/corrections/"
 MARKDOWN_RAW_DIR = "server/markdown_input_raw/"
 OUTPUT_DIR = "server/lm/"
@@ -20,6 +22,11 @@ def get_markdown_files():
     return sorted(glob.glob(os.path.join(MARKDOWN_RAW_DIR, "*.md")))
 
 def main():
+    parser = argparse.ArgumentParser(description="KenLM Training mit adaptivem Pruning")
+    parser.add_argument("--regenerate-base-arpa", type=str, default="false", help="Basismodell (ARPA) neu generieren: true|false (default: false)")
+    args = parser.parse_args()
+    regenerate_base_arpa = args.regenerate_base_arpa.lower() == "true"
+
     if not os.path.isfile(BASE_CORPUS):
         print(f"[ERROR] Basis-Korpus nicht gefunden: {BASE_CORPUS}")
         sys.exit(1)
@@ -39,18 +46,26 @@ def main():
         cleaned_markdown_path = None
 
     # Schritt 2: Korrekturen und bereinigte Markdown-Notizen zusammenführen
-    # Die Korrekturen werden direkt übernommen, Markdown-Notizen werden bereinigt
-    # Die PersonalizedKenLMTrainer erwartet beide als user_correction_files
     all_personalization_files = user_corrections.copy()
     if cleaned_markdown_path:
         all_personalization_files.append(cleaned_markdown_path)
+
+    # Basiskorpus-ARPA Handling: nur prüfen, ob existiert, falls Flag false
+    if not regenerate_base_arpa and not os.path.isfile(BASE_ARPA):
+        print(f"[ERROR] Basismodell (ARPA) nicht gefunden: {BASE_ARPA}")
+        print(f"Bitte --regenerate-base-arpa=true setzen, um das Basismodell neu zu generieren.")
+        sys.exit(1)
+    if regenerate_base_arpa:
+        print(f"[INFO] Basismodell (ARPA) wird neu generiert...")
+    else:
+        print(f"[INFO] Existierendes Basismodell (ARPA) wird verwendet: {BASE_ARPA}")
 
     trainer = PersonalizedKenLMTrainer(
         base_corpus=BASE_CORPUS,
         user_correction_files=all_personalization_files,
         output_dir=OUTPUT_DIR
     )
-    model_path, hotwords = trainer.train_complete_pipeline()
+    model_path, hotwords = trainer.train_adaptive_pruning_pipeline(lambda_mix=0.95, regenerate_base_arpa=regenerate_base_arpa)
     print(f"[SUCCESS] KenLM-Modell gespeichert unter: {model_path}")
     print(f"[INFO] Hotwords extrahiert: {hotwords[:10]} ... (insgesamt {len(hotwords)})")
 

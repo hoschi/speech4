@@ -54,10 +54,27 @@ pip install ./kenlm
 
 
 
+
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
 ```bash
 source server/venv/bin/activate
+# Standard: existierendes Basismodell (ARPA) wird verwendet
 python server/train_lm.py
+
+# Basismodell (ARPA) neu generieren:
+python server/train_lm.py --regenerate-base-arpa=true
+```
+
+**Parameter:**
+- `--regenerate-base-arpa=true|false` (default: false)
+    - true: Basiskorpus wird neu als ARPA-Modell gebaut
+    - false: existierendes ARPA wird verwendet
+    - Falls kein ARPA existiert und der Parameter false ist, bricht das Skript mit Fehler ab und fordert zur Generierung auf
+
+**Beispiel-Fehlermeldung:**
+```
+[ERROR] Basismodell (ARPA) nicht gefunden: server/lm/base_model.arpa
+Bitte --regenerate-base-arpa=true setzen, um das Basismodell neu zu generieren.
 ```
 
 **Personalisierungsdaten:**

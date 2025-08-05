@@ -114,7 +114,7 @@ class KenLMManager:
 # Hauptklasse für Training
 
 class PersonalizedKenLMTrainer:
-    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95):
+    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95, regenerate_base_arpa=False):
         """
         Zweistufiges adaptives Pruning und Interpolation gemäß docs/2025-08-05-fix-fuer-kenlm-personalisierung-und-hotword-boosting.md
         1. Basiskorpus mit aggressivem Pruning trainieren
@@ -124,26 +124,29 @@ class PersonalizedKenLMTrainer:
         """
         try:
             self.logger.info("Starte adaptive zweistufige Pruning-Pipeline...")
-            # Schritt 1: Basiskorpus mit aggressivem Pruning
+            # Schritt 1: Basiskorpus mit aggressivem Pruning (nur wenn Flag gesetzt)
             base_arpa = self.output_dir / "base_model.arpa"
-            temp_dir = self.output_dir / "temp_base"
-            temp_dir.mkdir(exist_ok=True)
-            cmd_base = [
-                "kenlm/build/bin/lmplz",
-                "-o", "4",
-                "--prune", "0", "1", "1", "1",
-                "-S", "80%",
-                "-T", str(temp_dir),
-                "--text", str(self.base_corpus),
-                "--arpa", str(base_arpa),
-                "--verbose_header",
-                "--skip_symbols"
-            ]
-            self.logger.info(f"Basiskorpus: {' '.join(cmd_base)}")
-            result_base = subprocess.run(cmd_base, capture_output=True, text=True)
-            if result_base.returncode != 0:
-                self.logger.error(f"Basiskorpus-Training fehlgeschlagen: {result_base.stderr}")
-                raise RuntimeError("Basiskorpus-Training fehlgeschlagen")
+            if regenerate_base_arpa or not base_arpa.exists():
+                temp_dir = self.output_dir / "temp_base"
+                temp_dir.mkdir(exist_ok=True)
+                cmd_base = [
+                    "kenlm/build/bin/lmplz",
+                    "-o", "4",
+                    "--prune", "0", "1", "1", "1",
+                    "-S", "80%",
+                    "-T", str(temp_dir),
+                    "--text", str(self.base_corpus),
+                    "--arpa", str(base_arpa),
+                    "--verbose_header",
+                    "--skip_symbols"
+                ]
+                self.logger.info(f"Basiskorpus: {' '.join(cmd_base)}")
+                result_base = subprocess.run(cmd_base, capture_output=True, text=True)
+                if result_base.returncode != 0:
+                    self.logger.error(f"Basiskorpus-Training fehlgeschlagen: {result_base.stderr}")
+                    raise RuntimeError("Basiskorpus-Training fehlgeschlagen")
+            else:
+                self.logger.info(f"Existierendes Basismodell (ARPA) wird verwendet: {base_arpa}")
             # Schritt 2: Nutzerdaten mit mildem/ohne Pruning
             corrections_cleaned, hotwords_path = self.preprocess_corrections()
             user_arpa = self.output_dir / "user_model.arpa"
