@@ -166,9 +166,19 @@ class PersonalizedKenLMTrainer:
             ]
             self.logger.info(f"Nutzerdaten: {' '.join(cmd_user)}")
             result_user = subprocess.run(cmd_user, capture_output=True, text=True)
+            # Prüfe auf BadDiscountException und retry mit --discount_fallback
             if result_user.returncode != 0:
-                self.logger.error(f"Nutzerdaten-Training fehlgeschlagen: {result_user.stderr}")
-                raise RuntimeError("Nutzerdaten-Training fehlgeschlagen")
+                if "BadDiscountException" in result_user.stderr or "Could not calculate Kneser-Ney discounts" in result_user.stderr:
+                    self.logger.warning("BadDiscountException erkannt, die Trainingsdaten sollten größer sein! Retry mit --discount_fallback...")
+                    cmd_user_fallback = cmd_user + ["--discount_fallback"]
+                    self.logger.info(f"Nutzerdaten (Fallback): {' '.join(cmd_user_fallback)}")
+                    result_user_fallback = subprocess.run(cmd_user_fallback, capture_output=True, text=True)
+                    if result_user_fallback.returncode != 0:
+                        self.logger.error(f"Nutzerdaten-Training (Fallback) fehlgeschlagen: {result_user_fallback.stderr}")
+                        raise RuntimeError("Nutzerdaten-Training fehlgeschlagen (Fallback)")
+                else:
+                    self.logger.error(f"Nutzerdaten-Training fehlgeschlagen: {result_user.stderr}")
+                    raise RuntimeError("Nutzerdaten-Training fehlgeschlagen")
             # Schritt 3: Interpolation/Merging
             final_arpa = self.output_dir / "final_model.arpa"
             # SRILM ngram-Tool vorausgesetzt, alternativ eigenes Script
