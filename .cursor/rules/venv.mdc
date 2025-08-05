@@ -3,4 +3,4 @@ description: wichtig wenn man python Befehle ausführt
 globs: 
 alwaysApply: false
 ---
-Vor jedem Ausführen von Python-Befehlen oder pip-Installationen in diesem Projekt muss die venv mit 'source server/venv/bin/activate' aktiviert werden. Dies gilt insbesondere für alle Python-Kommandos, Modellinspektionen und Trainingsbefehle.
+Vor jedem Ausführen von Python-Befehlen oder pip-Installationen in diesem Projekt muss die venv mit 'sconda activate speech3' aktiviert werden. Dies gilt insbesondere für alle Python-Kommandos, Modellinspektionen und Trainingsbefehle.

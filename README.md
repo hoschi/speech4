@@ -28,14 +28,16 @@ cd speech3
 git submodule update --init --recursive
 ```
 
-### 2. Python venv anlegen und aktivieren
+
+
+### 2. Conda-Umgebung mit environment.yml anlegen und aktivieren
 ```bash
 asdf install
-python -m venv server/venv
-source server/venv/bin/activate
-pip install --upgrade pip
-pip install -r server/requirements.txt
+conda env create -f environment.yml
+conda activate speech3
 ```
+Die wichtigsten Tools (inkl. ngram, cmake, clang) werden automatisch installiert.
+
 
 ### 3. KenLM-Tools kompilieren
 ```bash
@@ -45,25 +47,31 @@ cmake ..
 make -j4
 cd ../..
 ```
+Das Tool `ngram` ist in der Conda-Umgebung verfügbar.
 
-### 4. KenLM-Python-Bindings installieren (im venv)
+
+
+### 4. KenLM-Python-Bindings installieren (in Conda-Umgebung)
 ```bash
-source server/venv/bin/activate
+conda activate speech3
 pip install ./kenlm
 ```
 
 
 
 
+
+
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
 ```bash
-source server/venv/bin/activate
+conda activate speech3
 # Standard: existierendes Basismodell (ARPA) wird verwendet
 python server/train_lm.py
 
 # Basismodell (ARPA) neu generieren:
 python server/train_lm.py --regenerate-base-arpa=true
 ```
+Das Training nutzt die Conda-Umgebung und alle enthaltenen Tools (inkl. ngram).
 
 **Parameter:**
 - `--regenerate-base-arpa=true|false` (default: false)
@@ -81,9 +89,10 @@ Bitte --regenerate-base-arpa=true setzen, um das Basismodell neu zu generieren.
 - Korrekturen: Lege reine Textdateien (ASR-Ergebnisse, keine Formatierung) in `server/corrections/` ab.
 - Markdown-Notizen: Lege Markdown-Dateien (`*.md`) in `server/markdown_input_raw/` ab. Diese werden beim Training automatisch bereinigt und verstärkt in den Korpus integriert.
 
+
 ### 6. Server starten
 ```bash
-source server/venv/bin/activate
+conda activate speech3
 python server/main.py
 ```
 
@@ -91,17 +100,17 @@ python server/main.py
 
 Der Server startet nur, wenn ein fertiges KenLM-Modell (`server/lm/4gram_de.klm`) existiert. Das Training erfolgt über das Hauptskript `server/train_lm.py` und nutzt den Basis-Korpus, alle Korrekturen in `server/corrections/` sowie alle Markdown-Notizen in `server/markdown_input_raw/`.
 
+
 ## KenLM-Binaries für Training verfügbar machen
 
-
-Nach dem Kompilieren von KenLM (siehe oben) müssen die Binaries `lmplz` und `build_binary` für das Training im Backend verfügbar sein. Das geht am einfachsten per Symlink in das venv-Bin-Verzeichnis:
+Nach dem Kompilieren von KenLM (siehe oben) müssen die Binaries `lmplz` und `build_binary` für das Training im Backend verfügbar sein. Das geht am einfachsten per Symlink in das Conda-Bin-Verzeichnis:
 
 ```bash
-ln -sf $(pwd)/kenlm/build/bin/lmplz server/venv/bin/lmplz
-ln -sf $(pwd)/kenlm/build/bin/build_binary server/venv/bin/build_binary
+ln -sf $(pwd)/kenlm/build/bin/lmplz $(conda info --base)/envs/speech3/bin/lmplz
+ln -sf $(pwd)/kenlm/build/bin/build_binary $(conda info --base)/envs/speech3/bin/build_binary
 ```
 
-Dadurch findet das Backend die Tools automatisch, wenn das Training per Skript ausgelöst wird. Diese Symlinks (und das gesamte venv-Verzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
+Dadurch findet das Backend die Tools automatisch, wenn das Training per Skript ausgelöst wird. Diese Symlinks (und das gesamte Conda-Umgebungsverzeichnis) werden **nicht** versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
 
 ## KenLM-Optimierung für 32GB RAM
 
@@ -113,7 +122,7 @@ Das System implementiert automatische KenLM-Optimierung für große Sprachmodell
 - **Automatische Größenüberwachung**
 
 ## Hinweise
-- Das Verzeichnis `server/venv/` und große Modelle werden nicht versioniert (siehe .gitignore)
+- Das Verzeichnis der Conda-Umgebung und große Modelle werden nicht versioniert (siehe .gitignore)
 - Für die ASR-Qualität ist ein passendes KenLM-Modell erforderlich
 - Weitere Features siehe `tasks.md`
 

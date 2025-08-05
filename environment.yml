@@ -1,0 +1,13 @@
+name: speech3
+channels:
+  - defaults
+  - conda-forge
+  - anaconda
+dependencies:
+  - python=3.10
+  - pip
+  - cmake
+  - clang
+  - ngram
+  - pip:
+      - -r server/requirements.txt
