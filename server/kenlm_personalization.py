@@ -114,6 +114,95 @@ class KenLMManager:
 # Hauptklasse für Training
 
 class PersonalizedKenLMTrainer:
+    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95):
+        """
+        Zweistufiges adaptives Pruning und Interpolation gemäß docs/2025-08-05-fix-fuer-kenlm-personalisierung-und-hotword-boosting.md
+        1. Basiskorpus mit aggressivem Pruning trainieren
+        2. Nutzerdaten mit mildem/ohne Pruning als separates Modell trainieren
+        3. Interpolation/Merging der beiden ARPA-Modelle
+        4. Finale ARPA als Binärmodell bauen
+        """
+        try:
+            self.logger.info("Starte adaptive zweistufige Pruning-Pipeline...")
+            # Schritt 1: Basiskorpus mit aggressivem Pruning
+            base_arpa = self.output_dir / "base_model.arpa"
+            temp_dir = self.output_dir / "temp_base"
+            temp_dir.mkdir(exist_ok=True)
+            cmd_base = [
+                "kenlm/build/bin/lmplz",
+                "-o", "4",
+                "--prune", "0", "1", "1", "1",
+                "-S", "80%",
+                "-T", str(temp_dir),
+                "--text", str(self.base_corpus),
+                "--arpa", str(base_arpa),
+                "--verbose_header",
+                "--skip_symbols"
+            ]
+            self.logger.info(f"Basiskorpus: {' '.join(cmd_base)}")
+            result_base = subprocess.run(cmd_base, capture_output=True, text=True)
+            if result_base.returncode != 0:
+                self.logger.error(f"Basiskorpus-Training fehlgeschlagen: {result_base.stderr}")
+                raise RuntimeError("Basiskorpus-Training fehlgeschlagen")
+            # Schritt 2: Nutzerdaten mit mildem/ohne Pruning
+            corrections_cleaned, hotwords_path = self.preprocess_corrections()
+            user_arpa = self.output_dir / "user_model.arpa"
+            temp_dir_user = self.output_dir / "temp_user"
+            temp_dir_user.mkdir(exist_ok=True)
+            cmd_user = [
+                "kenlm/build/bin/lmplz",
+                "-o", "4",
+                # Mildes Pruning, z.B. --prune 0 0 1
+                "--prune", "0", "0", "1",
+                "-S", "80%",
+                "-T", str(temp_dir_user),
+                "--text", str(corrections_cleaned),
+                "--arpa", str(user_arpa),
+                "--verbose_header",
+                "--skip_symbols"
+            ]
+            self.logger.info(f"Nutzerdaten: {' '.join(cmd_user)}")
+            result_user = subprocess.run(cmd_user, capture_output=True, text=True)
+            if result_user.returncode != 0:
+                self.logger.error(f"Nutzerdaten-Training fehlgeschlagen: {result_user.stderr}")
+                raise RuntimeError("Nutzerdaten-Training fehlgeschlagen")
+            # Schritt 3: Interpolation/Merging
+            final_arpa = self.output_dir / "final_model.arpa"
+            # SRILM ngram-Tool vorausgesetzt, alternativ eigenes Script
+            cmd_interp = [
+                "ngram",
+                "-order", "4",
+                "-lm", str(base_arpa),
+                "-mix-lm", str(user_arpa),
+                "-lambda", str(lambda_mix),
+                "-write-lm", str(final_arpa)
+            ]
+            self.logger.info(f"Interpolation: {' '.join(cmd_interp)}")
+            result_interp = subprocess.run(cmd_interp, capture_output=True, text=True)
+            if result_interp.returncode != 0:
+                self.logger.error(f"Interpolation fehlgeschlagen: {result_interp.stderr}")
+                raise RuntimeError("Interpolation fehlgeschlagen")
+            # Schritt 4: Binärmodell bauen
+            binary_path = self.output_dir / "final_model.klm"
+            cmd_bin = [
+                "kenlm/build/bin/build_binary",
+                "-a", "22",
+                "-q", "8",
+                "-b", "8",
+                "trie",
+                str(final_arpa),
+                str(binary_path)
+            ]
+            self.logger.info(f"Binärmodell: {' '.join(cmd_bin)}")
+            result_bin = subprocess.run(cmd_bin, capture_output=True, text=True)
+            if result_bin.returncode != 0:
+                self.logger.error(f"Binärkonvertierung fehlgeschlagen: {result_bin.stderr}")
+                raise RuntimeError("Binärkonvertierung fehlgeschlagen")
+            self.logger.info(f"Adaptive Pipeline erfolgreich! Modell: {binary_path}")
+            return binary_path, hotwords_path
+        except Exception as e:
+            self.logger.error(f"Adaptive Pipeline fehlgeschlagen: {e}")
+            raise
     def __init__(self, base_corpus, user_correction_files, output_dir):
         self.base_corpus = Path(base_corpus)
         self.user_correction_files = [Path(f) for f in user_correction_files]
@@ -177,67 +266,6 @@ class PersonalizedKenLMTrainer:
                 wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
                 hotwords.update(wiki_terms)
         return list(hotwords)
-    def create_combined_corpus(self, corrections_path):
-        self.logger.info("Erstelle kombinierten Korpus...")
-        combined_corpus = self.output_dir / "combined_corpus.txt"
-        merge_corpus_with_corrections(
-            self.base_corpus,
-            [corrections_path],
-            combined_corpus
-        )
-        with open(combined_corpus, 'r', encoding='utf-8') as f:
-            total_lines = sum(1 for _ in f)
-            self.logger.info(f"Kombinierter Korpus: {total_lines} Zeilen")
-        return combined_corpus
-    def train_model(self, corpus_path):
-        self.logger.info("Starte KenLM-Training...")
-        arpa_path = self.output_dir / "model.arpa"
-        temp_dir = self.output_dir / "temp"
-        temp_dir.mkdir(exist_ok=True)
-        cmd = [
-            "kenlm/build/bin/lmplz",
-            "-o", "4",
-            "--prune", "0", "1", "1", "1",
-            "-S", "80%",
-            "-T", str(temp_dir),
-            "--text", str(corpus_path),
-            "--arpa", str(arpa_path),
-            "--verbose_header",
-            "--skip_symbols"
-        ]
-        self.logger.info(f"Führe aus: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            self.logger.error(f"Training fehlgeschlagen: {result.stderr}")
-            raise RuntimeError("KenLM-Training fehlgeschlagen")
-        if arpa_path.exists():
-            size_mb = arpa_path.stat().st_size / 1024 / 1024
-            self.logger.info(f"ARPA-Modell erstellt: {size_mb:.2f} MB")
-        return arpa_path
-    def convert_to_binary(self, arpa_path):
-        self.logger.info("Konvertiere zu optimiertem Binärformat...")
-        binary_path = self.output_dir / "model.klm"
-        cmd = [
-            "kenlm/build/bin/build_binary",
-            "-a", "22",
-            "-q", "8",
-            "-b", "8",
-            "trie",
-            str(arpa_path),
-            str(binary_path)
-        ]
-        self.logger.info(f"Führe aus: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            self.logger.error(f"Konvertierung fehlgeschlagen: {result.stderr}")
-            raise RuntimeError("Binärkonvertierung fehlgeschlagen")
-        arpa_size = arpa_path.stat().st_size / 1024 / 1024 / 1024
-        binary_size = binary_path.stat().st_size / 1024 / 1024 / 1024
-        compression_ratio = (arpa_size - binary_size) / arpa_size * 100
-        self.logger.info(f"ARPA-Größe: {arpa_size:.2f} GB")
-        self.logger.info(f"Binär-Größe: {binary_size:.2f} GB")
-        self.logger.info(f"Kompression: {compression_ratio:.1f}%")
-        return binary_path
     def evaluate_model(self, model_path):
         self.logger.info("Evaluiere trainiertes Modell...")
         test_sentences = []
@@ -263,17 +291,17 @@ class PersonalizedKenLMTrainer:
             self.logger.info(f"Durchschnittliche Perplexität: {avg_perplexity:.2f}")
             self.logger.info(f"Evaluierte Sätze: {len(perplexities)}")
         return perplexities
-    def train_complete_pipeline(self):
+    def train_complete_pipeline(self, lambda_mix=0.95):
+        """
+        Führt die komplette Pipeline immer mit zweistufigem adaptivem Pruning & Interpolation aus.
+        """
         try:
-            corrections_cleaned, hotwords_path = self.preprocess_corrections()
-            combined_corpus = self.create_combined_corpus(corrections_cleaned)
-            arpa_path = self.train_model(combined_corpus)
-            binary_path = self.convert_to_binary(arpa_path)
+            self.logger.info("Starte adaptive Pruning-Pipeline...")
+            binary_path, hotwords_path = self.train_adaptive_pruning_pipeline(lambda_mix=lambda_mix)
             self.evaluate_model(binary_path)
-            # Hotwords laden
             with open(hotwords_path, 'r', encoding='utf-8') as f:
                 hotwords = [line.strip() for line in f if line.strip()]
-            self.logger.info(f"Training erfolgreich abgeschlossen!")
+            self.logger.info(f"Adaptive Training erfolgreich abgeschlossen!")
             self.logger.info(f"Finales Modell: {binary_path}")
             return binary_path, hotwords
         except Exception as e:

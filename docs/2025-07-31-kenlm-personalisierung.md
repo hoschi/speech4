@@ -1,5 +1,7 @@
 # KenLM Language Model Training mit Markdown-Preprocessing: **Komplette Anleitung**
 
+https://www.perplexity.ai/search/ich-erstelle-ein-personalisier-yJFhpnELTdeqGNsfR6V03g#4
+
 ## Überblick des Verfahrens
 
 Die Anleitung basiert auf der Erkenntnis, dass **Markdown-Syntax in KenLM-Sprachmodellen problematisch ist**[^1][^2] und spezielle Preprocessing-Schritte erfordert, um ein optimales ASR-System zu erstellen. Das Verfahren umfasst:
