@@ -74,49 +74,38 @@ Falls du SRILM nicht nutzen möchtest, kannst du die Interpolation auch mit KenL
 
 Die SRILM-Binaries werden nach dem Build im Ordner `srilm-1.7.3/bin/<MACHINE_TYPE>/` abgelegt und müssen nicht global installiert werden.
 
-**Build-Anleitung:**
-1. Entpacke das SRILM-Archiv und wechsle ins Verzeichnis:
+**Build-Anleitung (Ordnername: `srilm`):**
+1. Entpacke das SRILM-Archiv und benenne den Ordner in `srilm` um:
    ```bash
-   cd srilm-1.7.3
+   mv srilm-1.7.3 srilm
+   cd srilm
    ```
-2. Setze im Makefile die Variable `SRILM` auf den absoluten Pfad des SRILM-Ordners (z.B. `/Users/<user>/repos/speech3-kenlm/srilm-1.7.3`).
-3. Starte den Build:
+2. Starte den Build:
    ```bash
-   make World
-   # oder falls nötig: make MACHINE_TYPE=i686-m64 World
+   make SRILM="$(pwd)" World
+   # oder falls nötig: make SRILM="$(pwd)" MACHINE_TYPE=i686-m64 World
    ```
    Die Binaries werden in `bin/<MACHINE_TYPE>/` erstellt (z.B. `bin/i686-m64/ngram`).
-4. Teste die Installation:
+3. Teste die Installation:
    ```bash
    bin/i686-m64/ngram -help
    ```
 
-**Integration ins Projekt:**
-Du kannst die Binaries direkt per relativem Pfad im Code/Skript verwenden, z.B.:
-```python
-cmd_interp = ["srilm-1.7.3/bin/i686-m64/ngram", ...]
-```
-Alternativ kannst du – wie bei KenLM – einen Symlink ins Conda-Bin-Verzeichnis legen, damit `ngram` überall verfügbar ist:
+**Integration ins Projekt (Symlink-Empfehlung):**
+Lege nach dem Build einen Symlink ins Conda-Bin-Verzeichnis an, damit `ngram` überall verfügbar ist:
 ```bash
-ln -sf $(pwd)/srilm-1.7.3/bin/i686-m64/ngram $(conda info --base)/envs/speech3/bin/ngram
+ln -sf $(pwd)/srilm/bin/i686-m64/ngram $(conda info --base)/envs/speech3/bin/ngram
 ```
-Damit kann dein Code einfach `ngram` als Befehl verwenden.
+Damit kann dein Code einfach `ngram` als Befehl verwenden und muss keinen relativen Pfad kennen.
 
 **Hinweis:**
 Die SRILM-Binaries und Symlinks werden nicht versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
-
-
 
 ### 4. KenLM-Python-Bindings installieren (in Conda-Umgebung)
 ```bash
 conda activate speech3
 pip install ./kenlm
 ```
-
-
-
-
-
 
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
 ```bash
