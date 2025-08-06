@@ -11,8 +11,9 @@ from pathlib import Path
 import json
 import kenlm
 import psutil
-from flair.data import Sentence
-from flair.models import SequenceTagger
+import spacy
+import re
+import logging
 
 # Markdown-Cleaning
 
@@ -281,25 +282,26 @@ class PersonalizedKenLMTrainer:
     @staticmethod
     def extract_hotwords_from_corrections(correction_files):
         """
-        Extrahiert Hotwords aus Korrekturdateien mittels Flair NER-Modell (flair/ner-multi).
-        Keine Regex-Fallbacks mehr, nur Flair.
+        Extrahiert Hotwords aus Korrekturdateien mittels spaCy NER-Modell (xx_ent_wiki_sm).
+        Loggt alle extrahierten Begriffe mit Label.
         """
-        tagger = SequenceTagger.load("flair/ner-multi")
+        nlp = spacy.load("xx_ent_wiki_sm")
+        logger = logging.getLogger(__name__)
         hotwords = set()
         for filename in correction_files:
             with open(filename, 'r', encoding='utf-8') as f:
                 content = f.read()
-                sentence = Sentence(content)
-                tagger.predict(sentence)
-                for entity in sentence.get_spans('ner'):
-                    hotwords.add(entity.text)
-                # Wiki Terms extrahieren und ebenfalls durch Flair schicken
+                doc = nlp(content)
+                for ent in doc.ents:
+                    hotwords.add(ent.text)
+                    logger.info(f"Extrahiert: '{ent.text}' Label: {ent.label_}")
+                # Wiki Terms extrahieren und ebenfalls durch spaCy schicken
                 wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
                 for wiki in wiki_terms:
-                    wiki_sentence = Sentence(wiki)
-                    tagger.predict(wiki_sentence)
-                    for entity in wiki_sentence.get_spans('ner'):
-                        hotwords.add(entity.text)
+                    wiki_doc = nlp(wiki)
+                    for ent in wiki_doc.ents:
+                        hotwords.add(ent.text)
+                        logger.info(f"Wiki-Term: '{ent.text}' Label: {ent.label_}")
         return list(hotwords)
     def evaluate_model(self, model_path):
         self.logger.info("Evaluiere trainiertes Modell...")

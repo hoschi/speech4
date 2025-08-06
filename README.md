@@ -88,6 +88,9 @@ pip install ./kenlm
 ```
 
 ### 5. KenLM-Modell trainieren (Basis + Personalisierung)
+
+Modell runterladen für NER: `python -m spacy download xx_ent_wiki_sm`
+
 ```bash
 conda activate speech3
 # Standard: existierendes Basismodell (ARPA) wird verwendet
