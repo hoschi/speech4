@@ -67,7 +67,13 @@ def main():
     )
     model_path, hotwords = trainer.train_adaptive_pruning_pipeline(lambda_mix=0.95, regenerate_base_arpa=regenerate_base_arpa)
     print(f"[SUCCESS] KenLM-Modell gespeichert unter: {model_path}")
-    print(f"[INFO] Hotwords extrahiert: {hotwords[:10]} ... (insgesamt {len(hotwords)})")
+    # Hotwords ist ein Pfad zu einer Textdatei, Begriffe einlesen
+    from pathlib import Path
+    if hotwords and Path(hotwords).is_file():
+        hotwords_list = Path(hotwords).read_text(encoding="utf-8").splitlines()
+        print(f"[INFO] Hotwords extrahiert: {hotwords_list[:10]} ... (insgesamt {len(hotwords_list)})")
+    else:
+        print(f"[INFO] Hotwords-Datei nicht gefunden: {hotwords}")
 
 if __name__ == "__main__":
     main()

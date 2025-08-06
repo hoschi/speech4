@@ -5,7 +5,7 @@
 - **client/**: React-Frontend für Audioaufnahme, Transkriptanzeige und Korrektureingabe.
 - **server/**: Python-Backend (FastAPI) für Streaming-ASR, Korrektur-Upload, KenLM-Training und Modellbereitstellung.
   - **server/data/**: Enthält Trainingsdaten für das Sprachmodell (z.B. `corpus.txt`, Logdateien, temporäre Dateien).
-  - **server/corrections/**: Gespeicherte Korrekturtexte (reine ASR-Ergebnisse, keine Formatierung, kein Cleaning nötig) und (optional) zugehörige Audiodateien, die von Nutzern hochgeladen wurden.
+  - **server/corrections/**: Gespeicherte Korrekturtexte (reine ASR-Ergebnisse, keine Formatierung, kein Cleaning nötig) und (optional) zugehörige Audiodateien, die von Nutzern hochgeladen wurden. Hotwords werden hier nur erkannt wenn sie mit Großbuchstaben anfangen.
   - **server/markdown_input_raw/**: Markdown-Notizen des Nutzers für die Personalisierung (werden vor dem Training automatisch bereinigt/gecleaned).
   - **server/lm/**: Fertig trainierte und komprimierte KenLM-Modelle (z.B. `4gram_de.klm`) für die Inferenz.
   - **server/venv/**: (optional) Python-virtuelle Umgebung für das Backend.
