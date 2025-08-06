@@ -1,6 +1,5 @@
 """
 KenLM-Personalisierung für ASR-Systeme
-Basierend auf der Anleitung in docs/2025-07-31-kenlm-personalisierung.md
 """
 import re
 import unicodedata
@@ -154,7 +153,7 @@ class PersonalizedKenLMTrainer:
             else:
                 self.logger.info(f"Existierendes Basismodell (ARPA) wird verwendet: {base_arpa}")
             # Schritt 2: Nutzerdaten mit mildem/ohne Pruning
-            corrections_cleaned, hotwords_path = self.preprocess_corrections(original_markdown_files)
+            corrections_cleaned, hotwords_path = self.preprocess_corrections()
             user_arpa = self.output_dir / "user_model.arpa"
             temp_dir_user = self.output_dir / "temp_user"
             temp_dir_user.mkdir(exist_ok=True)
@@ -257,52 +256,20 @@ class PersonalizedKenLMTrainer:
         }
         with open(self.output_dir / 'config.json', 'w') as f:
             json.dump(config, f, indent=2)
-    def preprocess_corrections(self, original_markdown_files):
+    def preprocess_corrections(self):
         self.logger.info("Starte Markdown-Preprocessing der Nutzerkorrekturen...")
         corrections_cleaned = self.output_dir / "user_corrections_cleaned.txt"
-        hotwords_path = self.output_dir / "hotwords.txt"
+        # User-Hotwords werden direkt aus server/user_data/hotwords.txt geladen
+        hotwords_path = Path("server/user_data/hotwords.txt")
         process_markdown_notes(self.user_correction_files, corrections_cleaned)
-        # Hotwords extrahieren und speichern
-        hotword_sources = []
-        # Korrekturen immer als Quelle nehmen
-        hotword_sources.extend([str(f) for f in self.user_correction_files if str(f).endswith('.txt')])
-        # Original-Markdown falls vorhanden ebenfalls als Quelle nehmen
-        if original_markdown_files:
-            hotword_sources.extend([str(f) for f in original_markdown_files])
-        hotwords = self.extract_hotwords_from_corrections(hotword_sources)
-        with open(hotwords_path, 'w', encoding='utf-8') as f:
-            for word in hotwords:
-                f.write(word + '\n')
-        self.logger.info(f"Extrahierte Hotwords: {len(hotwords)} Begriffe")
         with open(corrections_cleaned, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             self.logger.info(f"Bereinigte Korrekturen: {len(lines)} Zeilen")
+        # Hotwords werden nicht mehr extrahiert, sondern direkt übernommen
+        self.logger.info(f"Hotwords werden aus {hotwords_path} übernommen.")
         return corrections_cleaned, hotwords_path
 
-    @staticmethod
-    def extract_hotwords_from_corrections(correction_files):
-        """
-        Extrahiert Hotwords aus Korrekturdateien mittels spaCy NER-Modell (xx_ent_wiki_sm).
-        Loggt alle extrahierten Begriffe mit Label.
-        """
-        nlp = spacy.load("de_dep_news_trf")
-        logger = logging.getLogger(__name__)
-        hotwords = set()
-        for filename in correction_files:
-            with open(filename, 'r', encoding='utf-8') as f:
-                content = f.read()
-                doc = nlp(content)
-                for ent in doc.ents:
-                    hotwords.add(ent.text)
-                    logger.info(f"Extrahiert: '{ent.text}' Label: {ent.label_}")
-                # Wiki Terms extrahieren und ebenfalls durch spaCy schicken
-                wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
-                for wiki in wiki_terms:
-                    wiki_doc = nlp(wiki)
-                    for ent in wiki_doc.ents:
-                        hotwords.add(ent.text)
-                        logger.info(f"Wiki-Term: '{ent.text}' Label: {ent.label_}")
-        return list(hotwords)
+    # Die Hotword-Extraktion entfällt komplett, Hotwords werden nur noch aus server/user_data/hotwords.txt geladen.
     def evaluate_model(self, model_path):
         self.logger.info("Evaluiere trainiertes Modell...")
         test_sentences = []
