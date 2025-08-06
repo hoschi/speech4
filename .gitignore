@@ -18,3 +18,4 @@ progress.txt
 server/markdown_input_raw/
 srilm
 .vscode
+server/user_data/
