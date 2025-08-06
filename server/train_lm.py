@@ -65,7 +65,7 @@ def main():
         user_correction_files=all_personalization_files,
         output_dir=OUTPUT_DIR
     )
-    model_path, hotwords = trainer.train_adaptive_pruning_pipeline(lambda_mix=0.95, regenerate_base_arpa=regenerate_base_arpa)
+    model_path, hotwords = trainer.train_adaptive_pruning_pipeline(lambda_mix=0.95, regenerate_base_arpa=regenerate_base_arpa, original_markdown_files=markdown_notes)
     print(f"[SUCCESS] KenLM-Modell gespeichert unter: {model_path}")
     # Hotwords ist ein Pfad zu einer Textdatei, Begriffe einlesen
     from pathlib import Path

@@ -18,7 +18,6 @@ def clean_markdown_for_kenlm(text):
     # YAML-Frontmatter am Anfang entfernen
     if text.startswith('---'):
         lines = text.splitlines()
-        end_idx = None
         for i in range(1, len(lines)):
             if lines[i].strip() == '---':
                 end_idx = i
@@ -103,18 +102,22 @@ class KenLMManager:
     def score_text(self, text):
         if self.model is None:
             self.load_model()
+        if self.model is None:
+            raise RuntimeError("KenLM-Modell konnte nicht geladen werden.")
         normalized = normalize_text_for_asr(text)
         return self.model.score(normalized)
     def get_perplexity(self, text):
         if self.model is None:
             self.load_model()
+        if self.model is None:
+            raise RuntimeError("KenLM-Modell konnte nicht geladen werden.")
         normalized = normalize_text_for_asr(text)
         return self.model.perplexity(normalized)
 
 # Hauptklasse für Training
 
 class PersonalizedKenLMTrainer:
-    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95, regenerate_base_arpa=False):
+    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95, regenerate_base_arpa=False, original_markdown_files=None):
         """
         Zweistufiges adaptives Pruning und Interpolation gemäß docs/2025-08-05-fix-fuer-kenlm-personalisierung-und-hotword-boosting.md
         1. Basiskorpus mit aggressivem Pruning trainieren
@@ -148,7 +151,7 @@ class PersonalizedKenLMTrainer:
             else:
                 self.logger.info(f"Existierendes Basismodell (ARPA) wird verwendet: {base_arpa}")
             # Schritt 2: Nutzerdaten mit mildem/ohne Pruning
-            corrections_cleaned, hotwords_path = self.preprocess_corrections()
+            corrections_cleaned, hotwords_path = self.preprocess_corrections(original_markdown_files)
             user_arpa = self.output_dir / "user_model.arpa"
             temp_dir_user = self.output_dir / "temp_user"
             temp_dir_user.mkdir(exist_ok=True)
@@ -251,13 +254,19 @@ class PersonalizedKenLMTrainer:
         }
         with open(self.output_dir / 'config.json', 'w') as f:
             json.dump(config, f, indent=2)
-    def preprocess_corrections(self):
+    def preprocess_corrections(self, original_markdown_files):
         self.logger.info("Starte Markdown-Preprocessing der Nutzerkorrekturen...")
         corrections_cleaned = self.output_dir / "user_corrections_cleaned.txt"
         hotwords_path = self.output_dir / "hotwords.txt"
         process_markdown_notes(self.user_correction_files, corrections_cleaned)
         # Hotwords extrahieren und speichern
-        hotwords = self.extract_hotwords_from_corrections(self.user_correction_files)
+        hotword_sources = []
+        # Korrekturen immer als Quelle nehmen
+        hotword_sources.extend([str(f) for f in self.user_correction_files if str(f).endswith('.txt')])
+        # Original-Markdown falls vorhanden ebenfalls als Quelle nehmen
+        if original_markdown_files:
+            hotword_sources.extend([str(f) for f in original_markdown_files])
+        hotwords = self.extract_hotwords_from_corrections(hotword_sources)
         with open(hotwords_path, 'w', encoding='utf-8') as f:
             for word in hotwords:
                 f.write(word + '\n')
@@ -273,9 +282,10 @@ class PersonalizedKenLMTrainer:
         for filename in correction_files:
             with open(filename, 'r', encoding='utf-8') as f:
                 content = f.read()
-                cleaned = clean_markdown_for_kenlm(content)
-                domain_terms = re.findall(r'\b[A-ZÄÖÜ][a-zäöüß]{4,}\b', cleaned)
+                # Domain Terms direkt aus dem Original extrahieren (Großbuchstaben bleiben erhalten)
+                domain_terms = re.findall(r'\b[A-ZÄÖÜ][a-zäöüß]{4,}\b', content)
                 hotwords.update(domain_terms)
+                # Wiki Terms wie gehabt
                 wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
                 hotwords.update(wiki_terms)
         return list(hotwords)
