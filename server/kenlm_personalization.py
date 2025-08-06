@@ -11,6 +11,8 @@ from pathlib import Path
 import json
 import kenlm
 import psutil
+from flair.data import Sentence
+from flair.models import SequenceTagger
 
 # Markdown-Cleaning
 
@@ -278,16 +280,26 @@ class PersonalizedKenLMTrainer:
 
     @staticmethod
     def extract_hotwords_from_corrections(correction_files):
+        """
+        Extrahiert Hotwords aus Korrekturdateien mittels Flair NER-Modell (flair/ner-multi).
+        Keine Regex-Fallbacks mehr, nur Flair.
+        """
+        tagger = SequenceTagger.load("flair/ner-multi")
         hotwords = set()
         for filename in correction_files:
             with open(filename, 'r', encoding='utf-8') as f:
                 content = f.read()
-                # Domain Terms direkt aus dem Original extrahieren (Großbuchstaben bleiben erhalten)
-                domain_terms = re.findall(r'\b[A-ZÄÖÜ][a-zäöüß]{4,}\b', content)
-                hotwords.update(domain_terms)
-                # Wiki Terms wie gehabt
+                sentence = Sentence(content)
+                tagger.predict(sentence)
+                for entity in sentence.get_spans('ner'):
+                    hotwords.add(entity.text)
+                # Wiki Terms extrahieren und ebenfalls durch Flair schicken
                 wiki_terms = re.findall(r'\[\[([^\]]+)\]\]', content)
-                hotwords.update(wiki_terms)
+                for wiki in wiki_terms:
+                    wiki_sentence = Sentence(wiki)
+                    tagger.predict(wiki_sentence)
+                    for entity in wiki_sentence.get_spans('ner'):
+                        hotwords.add(entity.text)
         return list(hotwords)
     def evaluate_model(self, model_path):
         self.logger.info("Evaluiere trainiertes Modell...")
