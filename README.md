@@ -47,54 +47,34 @@ cmake ..
 make -j4
 cd ../..
 ```
-Das Tool `ngram` ist in der Conda-Umgebung verfügbar.
-
-
-### 3b. SRILM installieren (für 'ngram'-Interpolation)
-Das SRILM-Tool `ngram` ist nicht über Conda installierbar und muss manuell installiert werden, falls du die Interpolation mit SRILM nutzen möchtest.
-
-**Schritte:**
-1. Lade SRILM von der offiziellen Seite herunter: [SRILM Download](http://www.speech.sri.com/projects/srilm/download.html)
-2. Entpacke das Archiv und folge der README zur Kompilierung (meistens mit `make World`).
-3. Füge das Verzeichnis mit den Binaries (z.B. `bin/i686-m64` oder `bin/x86_64`) zu deinem `$PATH` hinzu:
-   ```bash
-   export PATH=$PATH:/pfad/zu/srilm/bin/i686-m64
-   # Optional: dauerhaft in ~/.zshrc oder ~/.bashrc eintragen
-   ```
-4. Teste die Installation:
-   ```bash
-   ngram -help
-   ```
-
-**Hinweis:**
-Falls du SRILM nicht nutzen möchtest, kannst du die Interpolation auch mit KenLM oder einem eigenen Python-Skript durchführen. Passe dazu die entsprechende Stelle in `server/kenlm_personalization.py` an.
-
 
 #### SRILM lokal bauen und Binaries verfügbar machen
 
 Die SRILM-Binaries werden nach dem Build im Ordner `srilm-1.7.3/bin/<MACHINE_TYPE>/` abgelegt und müssen nicht global installiert werden.
 
 **Build-Anleitung (Ordnername: `srilm`):**
-1. Entpacke das SRILM-Archiv und benenne den Ordner in `srilm` um:
+1. Lade SRILM von der offiziellen Seite herunter: [SRILM Download](http://www.speech.sri.com/projects/srilm/download.html)
+2. Entpacke das SRILM-Archiv und benenne den Ordner in `srilm` um:
    ```bash
    mv srilm-1.7.3 srilm
    cd srilm
    ```
-2. Starte den Build:
+3. Starte den Build. Auf Mac muss gcc mit `brew install gcc` installiert sein, sonst kommt es zu Fehlern. Die gcc version findet man mit `ls /opt/homebrew/bin/gcc-*`:
    ```bash
    make SRILM="$(pwd)" World
+   # mac: make SRILM="$(pwd)" CC=gcc-15 World
    # oder falls nötig: make SRILM="$(pwd)" MACHINE_TYPE=i686-m64 World
    ```
-   Die Binaries werden in `bin/<MACHINE_TYPE>/` erstellt (z.B. `bin/i686-m64/ngram`).
-3. Teste die Installation:
+   Die Binaries werden in `bin/<MACHINE_TYPE>/` erstellt (z.B. `bin/macosx/ngram`).
+4. Teste die Installation:
    ```bash
-   bin/i686-m64/ngram -help
+   ./bin/macosx/ngram -help
    ```
 
 **Integration ins Projekt (Symlink-Empfehlung):**
 Lege nach dem Build einen Symlink ins Conda-Bin-Verzeichnis an, damit `ngram` überall verfügbar ist:
 ```bash
-ln -sf $(pwd)/srilm/bin/i686-m64/ngram $(conda info --base)/envs/speech3/bin/ngram
+ln -sf $(pwd)/bin/macosx/ngram $(conda info --base)/envs/speech3/bin/ngram
 ```
 Damit kann dein Code einfach `ngram` als Befehl verwenden und muss keinen relativen Pfad kennen.
 
