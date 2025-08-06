@@ -285,7 +285,7 @@ class PersonalizedKenLMTrainer:
         Extrahiert Hotwords aus Korrekturdateien mittels spaCy NER-Modell (xx_ent_wiki_sm).
         Loggt alle extrahierten Begriffe mit Label.
         """
-        nlp = spacy.load("xx_ent_wiki_sm")
+        nlp = spacy.load("de_dep_news_trf")
         logger = logging.getLogger(__name__)
         hotwords = set()
         for filename in correction_files:
