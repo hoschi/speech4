@@ -8,6 +8,5 @@ dependencies:
   - pip
   - cmake
   - clang
-  - ngram
   - pip:
       - -r server/requirements.txt

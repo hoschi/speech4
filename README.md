@@ -50,6 +50,62 @@ cd ../..
 Das Tool `ngram` ist in der Conda-Umgebung verfügbar.
 
 
+### 3b. SRILM installieren (für 'ngram'-Interpolation)
+Das SRILM-Tool `ngram` ist nicht über Conda installierbar und muss manuell installiert werden, falls du die Interpolation mit SRILM nutzen möchtest.
+
+**Schritte:**
+1. Lade SRILM von der offiziellen Seite herunter: [SRILM Download](http://www.speech.sri.com/projects/srilm/download.html)
+2. Entpacke das Archiv und folge der README zur Kompilierung (meistens mit `make World`).
+3. Füge das Verzeichnis mit den Binaries (z.B. `bin/i686-m64` oder `bin/x86_64`) zu deinem `$PATH` hinzu:
+   ```bash
+   export PATH=$PATH:/pfad/zu/srilm/bin/i686-m64
+   # Optional: dauerhaft in ~/.zshrc oder ~/.bashrc eintragen
+   ```
+4. Teste die Installation:
+   ```bash
+   ngram -help
+   ```
+
+**Hinweis:**
+Falls du SRILM nicht nutzen möchtest, kannst du die Interpolation auch mit KenLM oder einem eigenen Python-Skript durchführen. Passe dazu die entsprechende Stelle in `server/kenlm_personalization.py` an.
+
+
+#### SRILM lokal bauen und Binaries verfügbar machen
+
+Die SRILM-Binaries werden nach dem Build im Ordner `srilm-1.7.3/bin/<MACHINE_TYPE>/` abgelegt und müssen nicht global installiert werden.
+
+**Build-Anleitung:**
+1. Entpacke das SRILM-Archiv und wechsle ins Verzeichnis:
+   ```bash
+   cd srilm-1.7.3
+   ```
+2. Setze im Makefile die Variable `SRILM` auf den absoluten Pfad des SRILM-Ordners (z.B. `/Users/<user>/repos/speech3-kenlm/srilm-1.7.3`).
+3. Starte den Build:
+   ```bash
+   make World
+   # oder falls nötig: make MACHINE_TYPE=i686-m64 World
+   ```
+   Die Binaries werden in `bin/<MACHINE_TYPE>/` erstellt (z.B. `bin/i686-m64/ngram`).
+4. Teste die Installation:
+   ```bash
+   bin/i686-m64/ngram -help
+   ```
+
+**Integration ins Projekt:**
+Du kannst die Binaries direkt per relativem Pfad im Code/Skript verwenden, z.B.:
+```python
+cmd_interp = ["srilm-1.7.3/bin/i686-m64/ngram", ...]
+```
+Alternativ kannst du – wie bei KenLM – einen Symlink ins Conda-Bin-Verzeichnis legen, damit `ngram` überall verfügbar ist:
+```bash
+ln -sf $(pwd)/srilm-1.7.3/bin/i686-m64/ngram $(conda info --base)/envs/speech3/bin/ngram
+```
+Damit kann dein Code einfach `ngram` als Befehl verwenden.
+
+**Hinweis:**
+Die SRILM-Binaries und Symlinks werden nicht versioniert. Jeder Entwickler muss diesen Schritt lokal nach dem Build einmalig ausführen.
+
+
 
 ### 4. KenLM-Python-Bindings installieren (in Conda-Umgebung)
 ```bash

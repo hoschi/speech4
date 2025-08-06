@@ -16,3 +16,4 @@ server/reports/tune-decoder/
 progress.txt
 .env
 server/markdown_input_raw/
+srilm
