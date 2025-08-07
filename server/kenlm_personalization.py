@@ -119,7 +119,7 @@ class KenLMManager:
 # Hauptklasse für Training
 
 class PersonalizedKenLMTrainer:
-    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95, regenerate_base_arpa=False, original_markdown_files=None):
+    def train_adaptive_pruning_pipeline(self, lambda_mix=0.95, regenerate_base_arpa=False):
         """
         Zweistufiges adaptives Pruning und Interpolation gemäß docs/2025-08-05-fix-fuer-kenlm-personalisierung-und-hotword-boosting.md
         1. Basiskorpus mit aggressivem Pruning trainieren
